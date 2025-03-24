@@ -1,0 +1,159 @@
+// src/app/features/editor/components/preview/preview.component.scss
+@import '../../../../styles/variables';
+@import '../../../../styles/mixins';
+
+.section-title {
+  color: $purple-light;
+  margin-bottom: $spacing-md;
+}
+
+.preview-canvas {
+  aspect-ratio: 1;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-md;
+  position: relative;
+  
+  &.bg-transparent {
+    background-image: linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+                      linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+                      linear-gradient(-45deg, transparent 75%, #2a2a2a 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
+  
+  &.bg-solid {
+    background: #333;
+  }
+  
+  &.bg-gradient {
+    background: linear-gradient(45deg, $purple-primary, $purple-dark);
+  }
+  
+  &.bg-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.2' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+
+.result-image {
+  max-width: 90%;
+  max-height: 90%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  
+  &.pixel-size-8 {
+    image-rendering: pixelated;
+  }
+  
+  &.pixel-size-4 {
+    image-rendering: pixelated;
+  }
+  
+  &.pixel-size-2 {
+    image-rendering: auto;
+  }
+}
+
+.placeholder {
+  text-align: center;
+  padding: $spacing-lg;
+  
+  svg {
+    margin-bottom: $spacing-md;
+    opacity: 0.5;
+  }
+  
+  p {
+    color: $text-secondary;
+    max-width: 250px;
+    font-size: 0.9rem;
+  }
+}
+
+.processing-indicator {
+  text-align: center;
+  padding: $spacing-lg;
+  
+  svg {
+    margin-bottom: $spacing-md;
+    animation: rotate 2s linear infinite;
+  }
+  
+  p {
+    color: $purple-light;
+  }
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.preview-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  background: rgba(255, 255, 255, 0.05);
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+}
+
+.info-item {
+  display: flex;
+  gap: $spacing-xs;
+  
+  .info-label {
+    color: $text-secondary;
+    font-size: 0.9rem;
+  }
+  
+  .info-value {
+    color: $purple-light;
+    font-weight: 500;
+  }
+}
+
+// Animaciones
+.animation-breathing {
+  animation: breathing 4s ease-in-out infinite;
+}
+
+.animation-flickering {
+  animation: flickering 2s ease-in-out infinite;
+}
+
+.animation-floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes breathing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes flickering {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}

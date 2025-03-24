@@ -1,1 +1,144 @@
-/* You can add global styles to this file, and also import other style files */
+/* src/styles.scss */
+/* Archivo principal de estilos que importa todos los demás */
+
+@import './app/styles/variables';
+@import './app/styles/mixins';
+@import './app/styles/reset';
+
+// Estilos adicionales globales
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: $spacing-md;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+p {
+  margin-bottom: $spacing-md;
+}
+
+.gradient-text {
+  @include gradient-text;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+}
+
+.section {
+  margin: $spacing-xl 0;
+}
+
+.card {
+  @include card-base;
+}
+
+// Clases para cuadrícula
+.grid {
+  display: grid;
+  gap: $spacing-lg;
+}
+
+.grid-2 {
+  @extend .grid;
+  grid-template-columns: repeat(1, 1fr);
+  
+  @include responsive(tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.grid-3 {
+  @extend .grid;
+  grid-template-columns: repeat(1, 1fr);
+  
+  @include responsive(tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @include responsive(desktop) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.grid-4 {
+  @extend .grid;
+  grid-template-columns: repeat(1, 1fr);
+  
+  @include responsive(tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @include responsive(desktop) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+// Animaciones
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn $transition-normal ease-in-out;
+}
+
+.slide-up {
+  animation: slideUp $transition-normal ease-out;
+}
+
+// Estilos de accesibilidad
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Estilos de estado
+.loading {
+  position: relative;
+  min-height: 100px;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    margin-left: -20px;
+    border: 4px solid rgba($purple-light, 0.3);
+    border-radius: 50%;
+    border-top-color: $purple-light;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

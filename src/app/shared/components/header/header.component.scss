@@ -1,0 +1,77 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  
+  @include responsive(tablet-down) {
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  
+  h1 {
+    font-size: 1.8rem;
+    background: linear-gradient(to right, $purple-light, $purple-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0;
+  }
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background-color: $purple-primary;
+  border-radius: $border-radius-md;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  padding: 4px;
+  gap: 2px;
+  
+  .pixel {
+    background-color: $purple-light;
+    border-radius: 1px;
+  }
+}
+
+nav {
+  ul {
+    display: flex;
+    list-style: none;
+    gap: $spacing-lg;
+    margin: 0;
+    padding: 0;
+    
+    @include responsive(mobile) {
+      gap: $spacing-md;
+      font-size: 0.9rem;
+    }
+  }
+  
+  a {
+    color: $text-secondary;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color $transition-normal;
+    
+    &:hover, &.active {
+      color: $purple-light;
+    }
+  }
+}

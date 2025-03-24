@@ -1,0 +1,276 @@
+// src/app/features/home/home.component.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+:host {
+  display: block;
+}
+
+.hero {
+  padding: $spacing-xxl 0;
+  text-align: center;
+  
+  @include responsive(mobile) {
+    padding: $spacing-xl 0;
+  }
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-title {
+  font-size: 3rem;
+  margin-bottom: $spacing-lg;
+  @include gradient-text;
+  
+  @include responsive(mobile) {
+    font-size: 2rem;
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: $text-secondary;
+  margin-bottom: $spacing-xl;
+  
+  @include responsive(mobile) {
+    font-size: 1rem;
+  }
+}
+
+.hero-buttons {
+  display: flex;
+  gap: $spacing-md;
+  justify-content: center;
+  
+  @include responsive(mobile) {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+  
+  app-button {
+    width: 200px;
+    
+    @include responsive(mobile) {
+      width: 100%;
+    }
+  }
+}
+
+.method-cards {
+  margin: $spacing-xxl 0;
+}
+
+.method-card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: $spacing-lg;
+  
+  @include responsive(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.method-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: $spacing-md;
+  
+  .method-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: $spacing-lg;
+  }
+  
+  h3 {
+    text-align: center;
+    margin-bottom: $spacing-md;
+    color: $purple-light;
+  }
+  
+  p {
+    text-align: center;
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+    flex-grow: 1;
+  }
+}
+
+.upload-info, .prompt-example {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  background: rgba(255, 255, 255, 0.05);
+  padding: $spacing-sm;
+  border-radius: $border-radius-md;
+  margin-top: auto;
+  
+  span {
+    font-size: 0.9rem;
+    color: $text-secondary;
+  }
+}
+
+.prompt-example {
+  font-style: italic;
+}
+
+.gallery-preview {
+  margin: $spacing-xxl 0;
+  
+  h2 {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+    @include gradient-text;
+  }
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+
+.gallery-item {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.gallery-image {
+  aspect-ratio: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-md;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.gallery-info {
+  h3 {
+    font-size: 1.1rem;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.gallery-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  
+  .tag {
+    background: rgba($purple-primary, 0.2);
+    color: $purple-light;
+    padding: 2px $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: 0.8rem;
+  }
+}
+
+.view-more {
+  display: flex;
+  justify-content: center;
+  margin-top: $spacing-xl;
+  
+  app-button {
+    width: 200px;
+    
+    @include responsive(mobile) {
+      width: 100%;
+    }
+  }
+}
+
+.features {
+  margin: $spacing-xxl 0;
+  
+  h2 {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+    @include gradient-text;
+  }
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-xl;
+  
+  @include responsive(mobile) {
+    grid-template-columns: 1fr;
+    gap: $spacing-lg;
+  }
+}
+
+.feature {
+  text-align: center;
+  
+  .feature-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, $purple-primary, $purple-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto $spacing-md;
+  }
+  
+  h3 {
+    margin-bottom: $spacing-sm;
+    color: $purple-light;
+  }
+  
+  p {
+    color: $text-secondary;
+  }
+}
+
+.cta {
+  margin: $spacing-xxl 0;
+  padding: $spacing-xl;
+  background: linear-gradient(135deg, rgba($purple-dark, 0.5), rgba($purple-primary, 0.2));
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  
+  @include responsive(mobile) {
+    padding: $spacing-lg;
+  }
+}
+
+.cta-content {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  
+  h2 {
+    @include gradient-text;
+    margin-bottom: $spacing-md;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+  
+  app-button {
+    width: 200px;
+    
+    @include responsive(mobile) {
+      width: 100%;
+    }
+  }
+}

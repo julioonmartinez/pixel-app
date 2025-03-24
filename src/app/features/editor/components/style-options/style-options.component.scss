@@ -1,0 +1,98 @@
+// src/app/features/editor/components/style-options/style-options.component.scss
+@import '../../../../styles/variables';
+@import '../../../../styles/mixins';
+
+.section-title {
+  color: $purple-light;
+  margin-bottom: $spacing-md;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-lg;
+  
+  @include responsive(mobile) {
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+  }
+}
+
+.option-group {
+  margin-bottom: $spacing-md;
+  
+  label {
+    display: block;
+    margin-bottom: $spacing-xs;
+    color: $text-secondary;
+  }
+  
+  select, input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius-md;
+    padding: $spacing-sm $spacing-md;
+    color: $text-primary;
+    font-size: 0.9rem;
+    transition: border-color $transition-normal, background $transition-normal;
+    
+    &:focus {
+      outline: none;
+      border-color: rgba($purple-light, 0.5);
+      background: rgba(255, 255, 255, 0.07);
+    }
+  }
+}
+
+.range-container {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  
+  input[type="range"] {
+    flex-grow: 1;
+    -webkit-appearance: none;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    border: none;
+    
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: $purple-primary;
+      cursor: pointer;
+    }
+  }
+  
+  .range-value {
+    min-width: 44px;
+    text-align: right;
+    font-weight: bold;
+    color: $purple-light;
+  }
+}
+
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+}
+
+.palette-color {
+  width: 24px;
+  height: 24px;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform $transition-fast;
+  
+  &:hover {
+    transform: scale(1.2);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+}

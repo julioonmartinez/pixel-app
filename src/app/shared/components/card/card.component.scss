@@ -1,0 +1,52 @@
+// src/app/shared/components/card/card.component.scss
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.card {
+  background: $card-bg;
+  border-radius: $border-radius-lg;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  
+  &.elevated {
+    box-shadow: $shadow-lg;
+  }
+  
+  &.clickable {
+    cursor: pointer;
+    transition: transform $transition-normal, box-shadow $transition-normal;
+    
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: $shadow-xl;
+      border-color: rgba($purple-light, 0.3);
+    }
+  }
+}
+
+.card-header {
+  padding: $spacing-lg;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  
+  h3 {
+    margin-bottom: $spacing-xs;
+    color: $text-primary;
+  }
+  
+  .subtitle {
+    color: $text-secondary;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+  }
+}
+
+.card-content {
+  padding: $spacing-lg;
+}
+
+.card-footer {
+  padding: $spacing-lg;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: $text-secondary;
+  font-size: 0.9rem;
+}

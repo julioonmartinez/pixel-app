@@ -1,0 +1,91 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.editor-container {
+  width: 100%;
+}
+
+.editor-title {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+  @include gradient-text;
+}
+
+.editor-tabs {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: $spacing-md;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  background: transparent;
+  border: none;
+  color: $text-secondary;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+  
+  svg {
+    transition: stroke $transition-normal;
+  }
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: $text-primary;
+  }
+  
+  &.active {
+    background: rgba($purple-primary, 0.2);
+    color: $purple-light;
+    
+    svg {
+      stroke: $purple-light;
+    }
+  }
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-lg;
+  
+  @include responsive(tablet-down) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.editor-input {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.editor-preview {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  
+  app-card {
+    flex-grow: 1;
+  }
+}
+
+.preview-actions {
+  display: flex;
+  gap: $spacing-md;
+  
+  @include responsive(mobile) {
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+  
+  app-button {
+    flex: 1;
+  }
+}

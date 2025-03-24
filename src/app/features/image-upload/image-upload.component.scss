@@ -1,0 +1,117 @@
+// src/app/features/image-upload/image-upload.component.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.upload-container {
+  width: 100%;
+}
+
+.upload-area {
+  border: 2px dashed rgba($purple-light, 0.5);
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  min-height: 200px;
+  cursor: pointer;
+  background: rgba($purple-primary, 0.05);
+  transition: all $transition-normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+  
+  &:hover, &.drag-over {
+    background: rgba($purple-primary, 0.1);
+    border-color: $purple-light;
+  }
+}
+
+.upload-placeholder {
+  text-align: center;
+  
+  svg {
+    margin-bottom: $spacing-md;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .upload-browse {
+    color: $purple-light;
+    text-decoration: underline;
+    margin-bottom: $spacing-md;
+    display: inline-block;
+  }
+  
+  .upload-hint {
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+}
+
+.selected-file {
+  width: 100%;
+  
+  .preview-image {
+    width: 100%;
+    margin-bottom: $spacing-md;
+    border-radius: $border-radius-md;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    
+    img {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+    }
+  }
+  
+  .file-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-md;
+    
+    .file-name {
+      flex-grow: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: $spacing-sm;
+    }
+    
+    .file-size {
+      color: $text-secondary;
+      font-size: 0.9rem;
+      margin-right: $spacing-md;
+    }
+    
+    .remove-file {
+      color: $text-secondary;
+      cursor: pointer;
+      transition: color $transition-fast;
+      
+      &:hover {
+        color: $purple-light;
+      }
+    }
+  }
+}
+
+.upload-actions {
+  display: flex;
+  justify-content: center;
+  
+  app-button {
+    width: 200px;
+    
+    @include responsive(mobile) {
+      width: 100%;
+    }
+  }
+}

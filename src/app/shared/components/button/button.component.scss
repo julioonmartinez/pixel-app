@@ -1,0 +1,73 @@
+// src/app/shared/components/button/button.component.scss
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: $border-radius-md;
+  padding: $spacing-md $spacing-lg;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all $transition-normal;
+  border: none;
+  width: 100%;
+  
+  &.primary {
+    background: linear-gradient(135deg, $purple-primary, $purple-dark);
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, lighten($purple-primary, 5%), lighten($purple-dark, 5%));
+      box-shadow: $shadow-md;
+    }
+  }
+  
+  &.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: $text-primary;
+    
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: $purple-light;
+    }
+  }
+  
+  &.text {
+    background: transparent;
+    color: $purple-light;
+    padding: $spacing-sm $spacing-md;
+    
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .loader {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+  }
+  
+  .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,41 @@
+// Colores
+$main-bg: #121212;
+$bg-darker: #1a1a2e;
+$card-bg: #1e1e1e;
+$purple-primary: #9c27b0;
+$purple-light: #bb86fc;
+$purple-dark: #6a0080;
+$purple-accent: #e040fb;
+$text-primary: #ffffff;
+$text-secondary: #b3b3b3;
+
+// Breakpoints
+$breakpoint-mobile: 576px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 992px;
+$breakpoint-large: 1200px;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Borders
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-xl: 16px;
+
+// Shadows
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-md: 0 4px 8px rgba(0, 0, 0, 0.2);
+$shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.2);
+$shadow-xl: 0 15px 30px rgba(0, 0, 0, 0.3);
+
+// Transitions
+$transition-fast: 0.2s;
+$transition-normal: 0.3s;
+$transition-slow: 0.5s;
