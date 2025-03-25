@@ -2,6 +2,10 @@
 @import '../../../../styles/variables';
 @import '../../../../styles/mixins';
 
+.preview-container {
+  width: 100%;
+}
+
 .section-title {
   color: $purple-light;
   margin-bottom: $spacing-md;
@@ -71,6 +75,7 @@
     color: $text-secondary;
     max-width: 250px;
     font-size: 0.9rem;
+    margin: 0 auto;
   }
 }
 
@@ -85,6 +90,12 @@
   
   p {
     color: $purple-light;
+  }
+  
+  .processing-hint {
+    color: $text-secondary;
+    font-size: 0.9rem;
+    margin-top: $spacing-xs;
   }
 }
 
@@ -155,5 +166,29 @@
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+.error-message {
+  color: #cf6679;
+  background-color: rgba(207, 102, 121, 0.1);
+  border-left: 3px solid #cf6679;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-top: $spacing-md;
+}
+
+.overlay-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: $spacing-sm;
+  text-align: center;
+  font-size: 0.8rem;
+  
+  p {
+    margin: 0;
   }
 }

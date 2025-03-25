@@ -1,3 +1,4 @@
+//main.scss
 @import 'variables';
 @import 'mixins';
 @import 'reset';
@@ -298,6 +299,22 @@ strong, b {
     display: flex;
     justify-content: flex-end;
     gap: $spacing-sm;
+  }
+  @include responsive(mobile) {
+    max-width: 100%;
+    margin: $spacing-sm;
+    
+    .modal-body {
+      padding: $spacing-md; // Menos padding
+    }
+    
+    .modal-footer {
+      flex-direction: column; // Botones apilados
+      
+      app-button {
+        width: 100%;
+      }
+    }
   }
 }
 

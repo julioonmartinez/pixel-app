@@ -1,14 +1,16 @@
 // src/app/features/image-upload/image-upload.component.ts
-import { Component, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Output, EventEmitter, inject, effect } from '@angular/core';
 import { DragDropDirective } from '../../shared/directives/drag-drop.directive';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { FileSizePipe } from '../../shared/pipes/file-size.pipe';
-import { signal } from '@angular/core';
+import { signal, computed } from '@angular/core';
+import { PixelArtService } from '../../core/services/pixel-art.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-image-upload',
   standalone: true,
-  imports: [DragDropDirective, ButtonComponent, FileSizePipe],
+  imports: [CommonModule, DragDropDirective, ButtonComponent, FileSizePipe],
   template: `
     <div class="upload-container">
       <div 
@@ -17,7 +19,7 @@ import { signal } from '@angular/core';
         (fileDropped)="onFileDropped($event)"
         (click)="fileInput.click()"
       >
-        @if (!selectedFile()) {
+        @if (!selectedFile() && !isProcessing()) {
           <div class="upload-placeholder">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#bb86fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -27,6 +29,12 @@ import { signal } from '@angular/core';
             <p>Arrastra y suelta tu imagen aquí o</p>
             <span class="upload-browse">Explorar archivos</span>
             <p class="upload-hint">Formatos soportados: JPG, PNG, GIF, BMP, WEBP</p>
+          </div>
+        } @else if (isProcessing()) {
+          <div class="processing-indicator">
+            <div class="spinner"></div>
+            <p>Procesando imagen...</p>
+            <p class="processing-hint">Esto puede tardar unos segundos</p>
           </div>
         } @else {
           <div class="selected-file">
@@ -61,9 +69,15 @@ import { signal } from '@angular/core';
         (change)="onFileSelected($event)"
       />
       
+      @if (errorMessage()) {
+        <div class="error-message">
+          {{ errorMessage() }}
+        </div>
+      }
+      
       <div class="upload-actions">
         <app-button 
-          [disabled]="!selectedFile()"
+          [disabled]="!selectedFile() || isProcessing()"
           (onClick)="processImage()"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -73,18 +87,36 @@ import { signal } from '@angular/core';
             <rect x="7" y="14" width="3" height="3"></rect>
             <rect x="14" y="14" width="3" height="3"></rect>
           </svg>
-          Pixelar Imagen
+          {{ isProcessing() ? 'Procesando...' : 'Pixelar Imagen' }}
         </app-button>
       </div>
     </div>
   `,
-  styleUrls: ['./image-upload.component.scss']
+  styleUrl: './image-upload.component.scss'
 })
 export class ImageUploadComponent {
   @Output() imageSelected = new EventEmitter<string>();
   
+  private pixelArtService = inject(PixelArtService);
+  
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
+  errorMessage = signal<string | null>(null);
+
+  // En Angular 19, podemos usar directamente los signals del servicio
+  isProcessing = this.pixelArtService.isProcessing;
+  
+  // Usamos effect() para reaccionar a cambios en los signals del servicio
+  constructor() {
+    // Monitor de errores
+    effect(() => {
+      // Actualiza nuestro errorMessage local cuando cambia el error en el servicio
+      const serviceError = this.pixelArtService.error();
+      if (serviceError) {
+        this.errorMessage.set(serviceError);
+      }
+    });
+  }
   
   onFileDropped(files: FileList): void {
     this.handleFiles(files);
@@ -103,12 +135,13 @@ export class ImageUploadComponent {
       
       // Check if the file is an image
       if (!file.type.match(/image\/(jpeg|png|gif|bmp|webp)/)) {
-        alert('Por favor, selecciona un archivo de imagen válido.');
+        this.errorMessage.set('Por favor, selecciona un archivo de imagen válido.');
         return;
       }
       
       this.selectedFile.set(file);
       this.createImagePreview(file);
+      this.errorMessage.set(null);
     }
   }
   
@@ -126,6 +159,7 @@ export class ImageUploadComponent {
     event.stopPropagation();
     this.selectedFile.set(null);
     this.previewUrl.set(null);
+    this.errorMessage.set(null);
   }
   
   processImage(): void {

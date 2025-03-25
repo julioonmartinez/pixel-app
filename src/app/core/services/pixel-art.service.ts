@@ -1,16 +1,27 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { PixelArt, PixelArtStyle, BackgroundType, AnimationType } from '../models/pixel-art.model';
 import { MockDataService } from './mock-data.service';
-import { delay, of } from 'rxjs';
+import { catchError, finalize, tap, throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PixelArtService {
   private mockDataService = inject(MockDataService);
+  private http = inject(HttpClient);
   
-  // Mock image processing delay
-  private processingDelay = 1500;
+  private apiUrl = `${environment.apiUrl}/pixel-arts`;
+  
+  // Estado de error
+  readonly error = signal<string | null>(null);
+  
+  // Estado de carga
+  readonly isLoading = signal<boolean>(false);
+  
+  // Estado de procesamiento de imágenes
+  readonly isProcessing = signal<boolean>(false);
   
   // Current editing state using signals
   private currentSettings = signal({
@@ -22,6 +33,9 @@ export class PixelArtService {
     backgroundType: BackgroundType.TRANSPARENT,
     animationType: AnimationType.NONE
   });
+
+  // Lista de pixel arts guardados
+  readonly savedPixelArts = signal<PixelArt[]>([]);
   
   // Computed values
   currentPalette = computed(() => {
@@ -35,9 +49,6 @@ export class PixelArtService {
   
   // Result image
   resultImage = signal<string | null>(null);
-  
-  // Processing state
-  isProcessing = signal(false);
   
   // Public API
   getPixelArtExamples() {
@@ -64,36 +75,127 @@ export class PixelArtService {
     }
   }
   
-  // Mock image processing
+  // Procesar imagen utilizando el backend
   processImage() {
+    if (!this.sourceImage()) {
+      this.error.set('No hay imagen para procesar');
+      return;
+    }
+
     this.isProcessing.set(true);
+    this.error.set(null);
     
-    // Simulate processing delay
-    of(null).pipe(delay(this.processingDelay)).subscribe(() => {
-      // Here we would actually process the image
-      // For the mock, we'll just set a placeholder
-      this.resultImage.set(this.sourceImage());
-      this.isProcessing.set(false);
-    });
+    // Convertir dataURL a archivo
+    const imageFile = this.dataURLtoFile(
+      this.sourceImage()!, 
+      `image_${Date.now()}.png`
+    );
     
-    return this.resultImage;
+    // Crear FormData para enviar al backend
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    formData.append('name', `Pixel Art ${new Date().toLocaleString()}`);
+    formData.append('pixelSize', this.currentSettings().pixelSize.toString());
+    formData.append('style', this.currentSettings().style);
+    formData.append('paletteId', this.currentSettings().paletteId);
+    formData.append('contrast', '50');
+    formData.append('sharpness', '70');
+    formData.append('backgroundType', this.currentSettings().backgroundType);
+    formData.append('animationType', this.currentSettings().animationType);
+    formData.append('tags', 'uploaded');
+
+    console.log('🚀 Enviando imagen al backend para procesar');
+    
+    // Enviar al backend
+    this.http.post<PixelArt>(`${this.apiUrl}/process-image`, formData).pipe(
+      tap(result => {
+        console.log('✅ Imagen procesada correctamente:', result);
+        
+        if (result.imageUrl) {
+          // Asegurar que la URL es completa
+          const fullImageUrl = result.imageUrl.startsWith('http') 
+            ? result.imageUrl 
+            : `${environment.apiBaseUrl}${result.imageUrl}`;
+            
+          this.resultImage.set(fullImageUrl);
+          this.savedPixelArts.update(current => [result, ...current]);
+        } else {
+          console.error('⚠️ Respuesta sin imageUrl:', result);
+          this.error.set('La respuesta no contiene una imagen válida');
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error al procesar la imagen:', error);
+        this.error.set(`Error al procesar la imagen: ${error.message || error.statusText || 'Desconocido'}`);
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        this.isProcessing.set(false);
+      })
+    ).subscribe();
   }
   
-  // Mock AI generation
+  // Método para generar imagen desde prompt
   generateFromPrompt() {
+    if (!this.sourcePrompt() || this.sourcePrompt().length < 3) {
+      this.error.set('❌ El prompt es demasiado corto');
+      return;
+    }
+
     this.isProcessing.set(true);
+    this.error.set(null);
+
+    const request = {
+      prompt: this.sourcePrompt(),
+      settings: this.currentSettings()
+    };
+
+    console.log('🚀 Enviando solicitud al backend:', request);
+    console.log('🌍 URL de destino:', `${this.apiUrl}/generate-from-prompt`);
+
+    this.http.post<PixelArt>(`${this.apiUrl}/generate-from-prompt`, request, {
+      headers: { 'Content-Type': 'application/json' }
+    }).pipe(
+      tap(result => {
+        console.log('✅ Respuesta del backend:', result);
+        
+        if (result.imageUrl) {
+          // Asegúrate de que la URL es completa o constrúyela adecuadamente
+          const fullImageUrl = result.imageUrl.startsWith('http') 
+            ? result.imageUrl 
+            : `${environment.apiBaseUrl}${result.imageUrl}`;
+            
+          this.resultImage.set(fullImageUrl);
+          this.savedPixelArts.update(current => [result, ...current]);
+        } else {
+          console.error('⚠️ Respuesta sin imageUrl:', result);
+          this.error.set('La respuesta no contiene una imagen válida');
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error detallado:', error);
+        this.error.set(`Error al generar la imagen: ${error.message || error.statusText || 'Desconocido'}`);
+        return throwError(() => error);
+      }),
+      finalize(() => {
+        this.isProcessing.set(false);
+      })
+    ).subscribe();
+  }
+  
+  // Utilidad para convertir dataURL a File
+  private dataURLtoFile(dataurl: string, filename: string): File {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)![1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
     
-    // Simulate AI generation delay
-    of(null).pipe(delay(this.processingDelay * 2)).subscribe(() => {
-      // Here we would actually call an AI service
-      // For the mock, we'll just select a random example
-      const examples = this.mockDataService.getPixelArtExamples();
-      const randomIndex = Math.floor(Math.random() * examples().length);
-      this.resultImage.set(examples()[randomIndex].imageUrl);
-      this.isProcessing.set(false);
-    });
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
     
-    return this.resultImage;
+    return new File([u8arr], filename, { type: mime });
   }
   
   // Save pixel art

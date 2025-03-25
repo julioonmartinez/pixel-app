@@ -72,7 +72,7 @@
   gap: $spacing-lg;
   
   app-card {
-    flex-grow: 1;
+    // flex-grow: 1;
   }
 }
 
@@ -86,6 +86,6 @@
   }
   
   app-button {
-    flex: 1;
+    flex:0 0 1;
   }
 }

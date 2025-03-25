@@ -1,121 +1,120 @@
 // src/app/features/editor/components/preview/preview.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PixelArtService } from '../../../../core/services/pixel-art.service';
-import { PixelateDirective } from '../../../../shared/directives/pixelate.directive';
-import { BackgroundType, AnimationType } from '../../../../core/models/pixel-art.model';
 
 @Component({
   selector: 'app-preview',
   standalone: true,
-  imports: [CommonModule, PixelateDirective],
+  imports: [CommonModule],
   template: `
     <div class="preview-container">
       <h3 class="section-title">Vista Previa</h3>
       
-      <div 
-        class="preview-canvas"
-        [class]="getBackgroundClass()"
-        [ngClass]="getAnimationClass()"
-      >
-        @if (isProcessing()) {
-          <div class="processing-indicator">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#bb86fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-            </svg>
-            <p>Procesando imagen...</p>
-          </div>
-        } @else if (resultImage()) {
+      @if (isProcessing()) {
+        <div class="processing-indicator">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#bb86fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+          <p>Procesando imagen...</p>
+          <p class="processing-hint">
+            Aplicando pixelación con los ajustes seleccionados
+          </p>
+        </div>
+      } @else if (resultImage()) {
+        <div 
+          class="preview-canvas"
+          [class.bg-transparent]="backgroundType() === 'transparent'"
+          [class.bg-solid]="backgroundType() === 'solid'"
+          [class.bg-gradient]="backgroundType() === 'gradient'"
+          [class.bg-pattern]="backgroundType() === 'pattern'"
+        >
           <img 
             [src]="resultImage()" 
+            [alt]="'Pixel Art Preview'" 
             class="result-image"
-            [ngClass]="'pixel-size-' + settings().pixelSize"
-            appPixelate
-            [pixelSize]="settings().pixelSize"
-            [palette]="currentPalette()?.colors ||  []"
-            [dithering]="settings().style === 'dithered'"
-            alt="Pixel Art Result"
+            [class.pixel-size-8]="pixelSize() === 8"
+            [class.pixel-size-4]="pixelSize() === 4"
+            [class.pixel-size-2]="pixelSize() === 2"
+            [class.animation-breathing]="animationType() === 'breathing'"
+            [class.animation-flickering]="animationType() === 'flickering'"
+            [class.animation-floating]="animationType() === 'floating'"
           />
-        } @else {
-          <div class="placeholder">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-              <polyline points="21 15 16 10 5 21"></polyline>
-            </svg>
-            <p>Sube una imagen o genera con IA para ver el resultado</p>
+        </div>
+        
+        <div class="preview-info">
+          <div class="info-item">
+            <span class="info-label">Estilo:</span>
+            <span class="info-value">{{ styleName() }}</span>
           </div>
-        }
-      </div>
+          <div class="info-item">
+            <span class="info-label">Tamaño:</span>
+            <span class="info-value">{{ pixelSize() }}px</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Paleta:</span>
+            <span class="info-value">{{ paletteName() }}</span>
+          </div>
+        </div>
+      } @else if (sourceImage()) {
+        <div class="preview-canvas bg-transparent">
+          <img [src]="sourceImage()" alt="Original Image" class="result-image" />
+          <div class="overlay-hint">
+            <p>Configura los ajustes y haz clic en "Pixelar Imagen"</p>
+          </div>
+        </div>
+      } @else {
+        <div class="placeholder">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#6c7293" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <p>Sube una imagen o crea pixel art a partir de una descripción</p>
+        </div>
+      }
       
-      <div class="preview-info">
-        <div class="info-item">
-          <span class="info-label">Estilo:</span>
-          <span class="info-value">{{ getStyleName() }}</span>
+      @if (errorMessage()) {
+        <div class="error-message">
+          {{ errorMessage() }}
         </div>
-        <div class="info-item">
-          <span class="info-label">Tamaño de Pixel:</span>
-          <span class="info-value">{{ settings().pixelSize }}px</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Paleta:</span>
-          <span class="info-value">{{ currentPalette()?.name || 'Personalizada' }}</span>
-        </div>
-      </div>
+      }
     </div>
   `,
-  styleUrls: ['./preview.component.scss']
+   styleUrls: ['./preview.component.scss']
 })
 export class PreviewComponent {
   private pixelArtService = inject(PixelArtService);
   
-  settings = this.pixelArtService.getSettings();
+  // Accedemos directamente a los signals del servicio
+  sourceImage = this.pixelArtService.sourceImage;
   resultImage = this.pixelArtService.resultImage;
   isProcessing = this.pixelArtService.isProcessing;
-  currentPalette = this.pixelArtService.currentPalette;
+  errorMessage = this.pixelArtService.error;
   
-  getBackgroundClass(): string {
-    switch (this.settings().backgroundType) {
-      case BackgroundType.TRANSPARENT:
-        return 'bg-transparent';
-      case BackgroundType.SOLID:
-        return 'bg-solid';
-      case BackgroundType.GRADIENT:
-        return 'bg-gradient';
-      case BackgroundType.PATTERN:
-        return 'bg-pattern';
-      default:
-        return 'bg-transparent';
-    }
-  }
+  // Obtenemos settings del servicio
+  settings = this.pixelArtService.getSettings();
   
-  getAnimationClass(): string {
-    switch (this.settings().animationType) {
-      case AnimationType.BREATHING:
-        return 'animation-breathing';
-      case AnimationType.FLICKERING:
-        return 'animation-flickering';
-      case AnimationType.FLOATING:
-        return 'animation-floating';
-      default:
-        return '';
-    }
-  }
+  // Valores computed para mostrar en la interfaz
+  pixelSize = computed(() => this.settings().pixelSize);
+  backgroundType = computed(() => this.settings().backgroundType);
+  animationType = computed(() => this.settings().animationType);
   
-  getStyleName(): string {
-    switch (this.settings().style) {
-      case 'retro':
-        return 'Retro 8-bit';
-      case 'modern':
-        return 'Moderno 16-bit';
-      case 'minimalist':
-        return 'Minimalista';
-      case 'dithered':
-        return 'Con Dithering';
-      case 'isometric':
-        return 'Isométrico';
-      default:
-        return 'Estándar';
-    }
-  }
+  // Nombres legibles para la interfaz
+  styleName = computed(() => {
+    const styleMap: Record<string, string> = {
+      'retro': 'Retro 8-bit',
+      'modern': 'Moderno 16-bit',
+      'minimalist': 'Minimalista',
+      'dithered': 'Tramado',
+      'isometric': 'Isométrico'
+    };
+    return styleMap[this.settings().style] || this.settings().style;
+  });
+  
+  paletteName = computed(() => {
+    const palette = this.pixelArtService.currentPalette();
+    return palette ? palette.name : 'Personalizada';
+  });
 }
