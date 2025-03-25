@@ -65,7 +65,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    height: 100%; // Asegura que tome el alto del botón
+    line-height: 1; // Evita desajustes por herencia de estilos de texto
+    vertical-align: middle; // Asegura alineación correcta
   }
+  .btn-text{
+    display: flex;
+    align-items: center ;
+    gap: 0.25rem;
+  }
+  
+  
 }
 
 @keyframes spin {

@@ -7,17 +7,21 @@
 }
 
 .hero {
-  padding: $spacing-xxl 0;
-  text-align: center;
+  padding: $spacing-lg 0; // Reducido
   
-  @include responsive(mobile) {
+  @include responsive(tablet-up) {
     padding: $spacing-xl 0;
+  }
+  
+  @include responsive(desktop-up) {
+    padding: $spacing-xxl 0;
   }
 }
 
 .hero-content {
   max-width: 800px;
   margin: 0 auto;
+  padding: 0 $spacing-sm;
 }
 
 .hero-title {
@@ -42,34 +46,40 @@
 
 .hero-buttons {
   display: flex;
-  gap: $spacing-md;
-  justify-content: center;
+  flex-direction: column;
+  gap: $spacing-sm;
   
-  @include responsive(mobile) {
-    flex-direction: column;
-    gap: $spacing-sm;
+  @include responsive(tablet-up) {
+    flex-direction: row;
+    justify-content: center;
+    gap: $spacing-md;
   }
   
   app-button {
-    width: 200px;
+    width: 100%;
     
-    @include responsive(mobile) {
-      width: 100%;
+    @include responsive(tablet-up) {
+      width: 200px;
     }
   }
 }
 
 .method-cards {
-  margin: $spacing-xxl 0;
+  margin: $spacing-xl 0;
+  
+  @include responsive(tablet-up) {
+    margin: $spacing-xxl 0;
+  }
 }
 
 .method-card-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: $spacing-lg;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
   
-  @include responsive(mobile) {
-    grid-template-columns: 1fr;
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
   }
 }
 
@@ -131,9 +141,18 @@
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: $spacing-lg;
-  margin-bottom: $spacing-xl;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-md;
+  }
+  
+  @include responsive(desktop-up) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-lg;
+  }
 }
 
 .gallery-item {
@@ -206,12 +225,15 @@
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: $spacing-xl;
+  grid-template-columns: 1fr;
+  gap: $spacing-lg;
   
-  @include responsive(mobile) {
-    grid-template-columns: 1fr;
-    gap: $spacing-lg;
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @include responsive(desktop-up) {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -219,14 +241,18 @@
   text-align: center;
   
   .feature-icon {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     background: linear-gradient(135deg, $purple-primary, $purple-dark);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto $spacing-md;
+    @include responsive(tablet-up) {
+      width: 60px;
+      height: 60px;
+    }
   }
   
   h3 {

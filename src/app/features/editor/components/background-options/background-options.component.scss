@@ -7,10 +7,17 @@
 }
 
 .background-types {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-md;
-  margin-bottom: $spacing-lg;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  
+  @include responsive(tablet-up) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+  }
 }
 
 .bg-option {
@@ -83,9 +90,16 @@
 }
 
 .color-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   gap: $spacing-xs;
+  
+  .color-option {
+    @include touch-target;
+    aspect-ratio: 1;
+    width: auto;
+    height: auto;
+  }
 }
 
 .color-option {
@@ -99,5 +113,23 @@
   &:hover {
     transform: scale(1.2);
     border-color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.direction-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .direction-option {
+    @include touch-target;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: $spacing-sm;
   }
 }

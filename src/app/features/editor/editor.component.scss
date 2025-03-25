@@ -2,21 +2,43 @@
 @import '../../styles/mixins';
 
 .editor-container {
-  width: 100%;
+  @include responsive(mobile-only) {
+    padding: $spacing-sm 0;
+  }
 }
-
 .editor-title {
   text-align: center;
   margin-bottom: $spacing-xl;
   @include gradient-text;
+  @include responsive(tablet-up) {
+    font-size: 2.2rem;
+    margin-bottom: $spacing-lg;
+  }
 }
 
 .editor-tabs {
   display: flex;
   gap: $spacing-md;
-  margin-bottom: $spacing-lg;
+  overflow-x: auto;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-xs;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: $spacing-md;
+  scrollbar-width: thin;
+  
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+  .tab-button {
+    @include touch-target;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: $spacing-sm $spacing-md;
+    
+    svg {
+      margin-right: $spacing-xs;
+    }
+  }
 }
 
 .tab-button {
@@ -51,19 +73,30 @@
 }
 
 .editor-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
   
-  @include responsive(tablet-down) {
-    grid-template-columns: 1fr;
+  @include responsive(tablet-up) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-lg;
+  }
+  
+  @include responsive(desktop-up) {
+    grid-template-columns: 350px 1fr;
   }
 }
+
 
 .editor-input {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: $spacing-md;
+  
+  app-card {
+    margin-bottom: 0;
+  }
 }
 
 .editor-preview {
@@ -77,15 +110,20 @@
 }
 
 .preview-actions {
-  display: flex;
-  gap: $spacing-md;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
   
-  @include responsive(mobile) {
-    flex-direction: column;
-    gap: $spacing-sm;
+  @include responsive(tablet-up) {
+    display: flex;
+    justify-content: flex-end;
   }
   
   app-button {
-    flex:0 0 1;
+    width: 100%;
+    
+    @include responsive(tablet-up) {
+      width: auto;
+    }
   }
 }

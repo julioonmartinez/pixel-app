@@ -1,26 +1,68 @@
+// Mejora de mixins.scss
 @mixin responsive($breakpoint) {
-    @if $breakpoint == mobile {
-      @media (max-width: $breakpoint-mobile) {
-        @content;
-      }
-    } @else if $breakpoint == tablet {
-      @media (max-width: $breakpoint-tablet) {
-        @content;
-      }
-    } @else if $breakpoint == tablet-down {
-      @media (max-width: ($breakpoint-desktop - 1px)) {
-        @content;
-      }
-    } @else if $breakpoint == desktop {
-      @media (min-width: $breakpoint-desktop) {
-        @content;
-      }
-    } @else if $breakpoint == large {
-      @media (min-width: $breakpoint-large) {
-        @content;
-      }
+  @if $breakpoint == mobile-only {
+    @media (max-width: $breakpoint-mobile) {
+      @content;
+    }
+  } @else if $breakpoint == tablet-only {
+    @media (min-width: ($breakpoint-mobile + 1)) and (max-width: $breakpoint-tablet) {
+      @content;
+    }
+  } @else if $breakpoint == mobile-tablet {
+    @media (max-width: $breakpoint-tablet) {
+      @content;
+    }
+  } @else if $breakpoint == tablet-up {
+    @media (min-width: ($breakpoint-tablet + 1)) {
+      @content;
+    }
+  } @else if $breakpoint == desktop-up {
+    @media (min-width: $breakpoint-desktop) {
+      @content;
+    }
+  } @else if $breakpoint == large-up {
+    @media (min-width: $breakpoint-large) {
+      @content;
     }
   }
+}
+
+// Nuevo mixin para elementos táctiles
+@mixin touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  
+  @include responsive(mobile-only) {
+    touch-action: manipulation;
+  }
+}
+
+// Mixin para contenedor adaptativo
+@mixin adaptive-container {
+  width: 100%;
+  padding: 0 $spacing-md;
+  margin: 0 auto;
+  
+  @include responsive(tablet-up) {
+    max-width: $breakpoint-tablet - $spacing-lg;
+  }
+  
+  @include responsive(desktop-up) {
+    max-width: $breakpoint-desktop - $spacing-lg;
+  }
+  
+  @include responsive(large-up) {
+    max-width: $breakpoint-large - $spacing-xl;
+  }
+}
+
+// Mixin para limitar altura en móvil
+@mixin mobile-height-limit {
+  @include responsive(mobile-only) {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
   
   @mixin flex-center {
     display: flex;

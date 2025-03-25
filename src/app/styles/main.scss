@@ -3,54 +3,40 @@
 @import 'mixins';
 @import 'reset';
 
-// Estilos básicos para el cuerpo
+
+// Estilos básicos para el cuerpo con mejor accesibilidad
 body {
   background: linear-gradient(135deg, $main-bg, $bg-darker);
   color: $text-primary;
   min-height: 100vh;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba($purple-light, 0.3);
 }
 
-// Estilos de tipografía
-h1, h2, h3, h4, h5, h6 {
-  margin-bottom: $spacing-md;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
+// Tipografía más compacta para móvil
 h1 {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   
-  @include responsive(mobile) {
-    font-size: 2rem;
+  @include responsive(tablet-up) {
+    font-size: 2.5rem;
   }
 }
 
 h2 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   
-  @include responsive(mobile) {
-    font-size: 1.8rem;
+  @include responsive(tablet-up) {
+    font-size: 2rem;
   }
 }
 
 h3 {
-  font-size: 1.5rem;
-  
-  @include responsive(mobile) {
-    font-size: 1.3rem;
-  }
-}
-
-h4 {
   font-size: 1.3rem;
-}
-
-h5 {
-  font-size: 1.1rem;
-}
-
-h6 {
-  font-size: 1rem;
+  
+  @include responsive(tablet-up) {
+    font-size: 1.5rem;
+  }
 }
 
 p {
@@ -58,12 +44,19 @@ p {
   line-height: 1.6;
 }
 
+// Estilo touch-friendly para enlaces
 a {
   color: $purple-light;
   transition: color $transition-normal;
+  padding: 2px; // Más espacio para hacer tap
   
   &:hover {
     color: lighten($purple-light, 10%);
+  }
+  
+  &:focus-visible {
+    outline: 2px solid $purple-light;
+    outline-offset: 2px;
   }
 }
 
@@ -92,18 +85,26 @@ strong, b {
   @include gradient-text;
 }
 
+// Utilitarios adaptativos
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 $spacing-md;
+  @include adaptive-container;
 }
 
 .section {
   margin: $spacing-xl 0;
 }
 
+// Card base mejorada
 .card {
   @include card-base;
+  
+  @include responsive(mobile-only) {
+    padding: $spacing-md; // Menos padding en móvil
+    
+    &:hover {
+      transform: none; // Sin efecto hover en móvil
+    }
+  }
 }
 
 // Clases para cuadrícula
@@ -112,38 +113,45 @@ strong, b {
   gap: $spacing-lg;
 }
 
+// Grids mejorados (mobile-first)
 .grid-2 {
-  @extend .grid;
-  grid-template-columns: repeat(1, 1fr);
+  display: grid;
+  gap: $spacing-md;
+  grid-template-columns: 1fr;
   
-  @include responsive(tablet) {
+  @include responsive(tablet-up) {
     grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
   }
 }
 
 .grid-3 {
-  @extend .grid;
-  grid-template-columns: repeat(1, 1fr);
+  display: grid;
+  gap: $spacing-md;
+  grid-template-columns: 1fr;
   
-  @include responsive(tablet) {
+  @include responsive(tablet-up) {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  @include responsive(desktop) {
+  @include responsive(desktop-up) {
     grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-lg;
   }
 }
 
 .grid-4 {
-  @extend .grid;
-  grid-template-columns: repeat(1, 1fr);
+  display: grid;
+  gap: $spacing-md;
+  grid-template-columns: repeat(2, 1fr);
   
-  @include responsive(tablet) {
-    grid-template-columns: repeat(2, 1fr);
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(3, 1fr);
   }
   
-  @include responsive(desktop) {
+  @include responsive(desktop-up) {
     grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-lg;
   }
 }
 
@@ -255,64 +263,31 @@ strong, b {
   padding: $spacing-md;
 }
 
+// Modales optimizados para móvil
 .modal-content {
-  background: $card-bg;
-  border-radius: $border-radius-lg;
+  width: 95%;
   max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: $shadow-xl;
+  max-height: 85vh;
   
-  .modal-header {
-    padding: $spacing-md;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  @include responsive(mobile-only) {
+    width: 100%;
+    border-radius: $border-radius-md;
     
-    h3 {
-      margin-bottom: 0;
+    .modal-header, .modal-footer {
+      padding: $spacing-sm;
     }
-    
-    .close-btn {
-      background: none;
-      border: none;
-      color: $text-secondary;
-      cursor: pointer;
-      padding: $spacing-xs;
-      transition: color $transition-normal;
-      
-      &:hover {
-        color: $purple-light;
-      }
-    }
-  }
-  
-  .modal-body {
-    padding: $spacing-lg;
-  }
-  
-  .modal-footer {
-    padding: $spacing-md;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    justify-content: flex-end;
-    gap: $spacing-sm;
-  }
-  @include responsive(mobile) {
-    max-width: 100%;
-    margin: $spacing-sm;
     
     .modal-body {
-      padding: $spacing-md; // Menos padding
+      padding: $spacing-md;
     }
     
     .modal-footer {
-      flex-direction: column; // Botones apilados
+      flex-direction: column-reverse;
+      gap: $spacing-xs;
       
-      app-button {
+      button, app-button {
         width: 100%;
+        margin-bottom: $spacing-xs;
       }
     }
   }
@@ -360,55 +335,17 @@ strong, b {
   }
 }
 
-// Estilos para notificaciones
+// Mejora de notificaciones para móvil
 .notification {
-  position: fixed;
-  top: $spacing-lg;
-  right: $spacing-lg;
-  padding: $spacing-md;
-  border-radius: $border-radius-md;
-  background: rgba($card-bg, 0.9);
-  box-shadow: $shadow-lg;
-  z-index: 1000;
-  max-width: 300px;
-  backdrop-filter: blur(4px);
-  animation: slideIn $transition-normal ease-out;
-  transform-origin: top right;
-  
-  &.success {
-    border-left: 4px solid #4CAF50;
-  }
-  
-  &.error {
-    border-left: 4px solid #F44336;
-  }
-  
-  &.info {
-    border-left: 4px solid $purple-light;
-  }
-  
-  .notification-title {
-    font-weight: 600;
-    margin-bottom: $spacing-xs;
-  }
-  
-  .notification-message {
-    font-size: 0.9rem;
-    color: $text-secondary;
-  }
-  
-  .close-btn {
-    position: absolute;
-    top: $spacing-xs;
-    right: $spacing-xs;
-    color: $text-secondary;
-    background: none;
-    border: none;
-    cursor: pointer;
+  @include responsive(mobile-only) {
+    top: auto;
+    bottom: $spacing-md;
+    left: $spacing-md;
+    right: $spacing-md;
+    max-width: none;
+    border-radius: $border-radius-md;
     
-    &:hover {
-      color: $text-primary;
-    }
+    animation: slideUp $transition-normal ease-out;
   }
 }
 
@@ -420,5 +357,212 @@ strong, b {
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Mejora para lazy loading
+.lazy-image {
+  opacity: 0;
+  transition: opacity $transition-normal;
+  
+  &.loaded {
+    opacity: 1;
+  }
+}
+
+// Estilos para carga progresiva
+.skeleton-loading {
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+      rgba(255, 255, 255, 0.05) 25%, 
+      rgba(255, 255, 255, 0.1) 50%, 
+      rgba(255, 255, 255, 0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite linear;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.save-dialog-content, .share-dialog-content {
+  @include responsive(mobile-only) {
+    padding: $spacing-xs;
+  }
+  
+  .form-group {
+    margin-bottom: $spacing-md;
+    
+    label {
+      display: block;
+      margin-bottom: $spacing-xs;
+    }
+    
+    input {
+      @include touch-target;
+      width: 100%;
+      padding: $spacing-sm;
+    }
+  }
+  
+  .share-preview {
+    text-align: center;
+    margin: $spacing-md 0;
+    
+    img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: $border-radius-md;
+    }
+  }
+  
+  .share-url-container {
+    display: flex;
+    gap: $spacing-xs;
+    
+    @include responsive(mobile-only) {
+      flex-direction: column;
+    }
+    
+    input {
+      flex: 1;
+    }
+  }
+  
+  .social-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-sm;
+    margin-top: $spacing-md;
+    
+    .social-button {
+      @include touch-target;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $spacing-xs;
+      border: none;
+      border-radius: $border-radius-md;
+      padding: $spacing-sm;
+      color: white;
+      font-weight: 500;
+      
+      &.twitter {
+        background-color: #1DA1F2;
+      }
+      
+      &.facebook {
+        background-color: #4267B2;
+      }
+    }
+  }
+}
+
+// Nuevo componente: Zoom control para la vista previa
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+  
+  .zoom-btn {
+    @include touch-target;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: $text-primary;
+    cursor: pointer;
+    
+    &:hover {
+      background: rgba($purple-light, 0.2);
+    }
+  }
+  
+  .zoom-level {
+    color: $text-secondary;
+    font-size: 0.9rem;
+  }
+}
+
+// Nuevo componente: Bottom navigation para móvil
+.mobile-bottom-nav {
+  display: none;
+  
+  @include responsive(mobile-only) {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: $card-bg;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: $spacing-sm 0;
+      color: $text-secondary;
+      
+      &.active {
+        color: $purple-light;
+      }
+      
+      svg {
+        margin-bottom: $spacing-xs;
+      }
+      
+      span {
+        font-size: 0.7rem;
+      }
+    }
+  }
+}
+
+// Mejoras para accesibilidad
+.focus-outline {
+  &:focus-visible {
+    outline: 2px solid $purple-light;
+    outline-offset: 2px;
+  }
+}
+
+// Mejoras para rendimiento en móvil
+.reduce-animations {
+  @include responsive(mobile-only) {
+    animation: none !important;
+    transition: none !important;
   }
 }

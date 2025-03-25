@@ -35,7 +35,7 @@ export class PixelArtService {
   });
 
   // Lista de pixel arts guardados
-  readonly savedPixelArts = signal<PixelArt[]>([]);
+ savedPixelArts = signal<PixelArt[]>([]);
   
   // Computed values
   currentPalette = computed(() => {
@@ -53,6 +53,9 @@ export class PixelArtService {
   // Public API
   getPixelArtExamples() {
     return this.mockDataService.getPixelArtExamples();
+  }
+  getPixelArts(){
+    return this.savedPixelArts()
   }
   
   getSettings() {
@@ -222,4 +225,18 @@ export class PixelArtService {
     this.mockDataService.addPixelArt(newArt);
     return newArt;
   }
+
+  getPixelArtList() {
+    return this.http.get<any>(this.apiUrl).pipe(
+      tap(result => {
+        console.log('🎨 Datos obtenidos del backend:', result);
+        this.savedPixelArts.set(result.items)
+
+        console.log('📌 savedPixelArts actualizado:', this.savedPixelArts());
+      })
+    );
+  }
+  
+  
+  
 }

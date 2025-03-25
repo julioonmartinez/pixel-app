@@ -1,0 +1,196 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+:host {
+  display: block;
+}
+
+// The overlay that darkens the background when sidenav is open
+.sidenav-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+  z-index: 998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity $transition-normal;
+  
+  &.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+}
+
+.sidenav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 85%;
+  max-width: 320px;
+  background: $bg-darker;
+  z-index: 999;
+  transform: translateX(-105%);
+  transition: transform $transition-normal;
+  box-shadow: $shadow-xl;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  
+  &.open {
+    transform: translateX(0);
+  }
+}
+
+.sidenav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    
+    h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(to right, $purple-light, $purple-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0;
+    }
+  }
+  
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background-color: $purple-primary;
+    border-radius: $border-radius-md;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    padding: 3px;
+    gap: 2px;
+    
+    .pixel {
+      background-color: $purple-light;
+      border-radius: 1px;
+    }
+  }
+  
+  .close-btn {
+    @include touch-target;
+    background: transparent;
+    border: none;
+    color: $text-secondary;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-xs;
+    border-radius: $border-radius-md;
+    transition: background-color $transition-fast, color $transition-fast;
+    
+    &:hover, &:focus {
+      color: $purple-light;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+}
+
+.sidenav-nav {
+  flex: 1;
+  padding: $spacing-md 0;
+  
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  li {
+    margin-bottom: $spacing-xs;
+  }
+  
+  a {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md $spacing-lg;
+    color: $text-secondary;
+    text-decoration: none;
+    transition: color $transition-normal, background-color $transition-normal;
+    border-radius: 0;
+    
+    &:hover, &:focus, &.active {
+      color: $purple-light;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    &.active {
+      border-left: 3px solid $purple-light;
+      padding-left: calc(#{$spacing-lg} - 3px);
+    }
+    
+    svg {
+      color: currentColor;
+    }
+  }
+}
+
+// The menu toggle button (hamburger) that appears in the header
+.menu-toggle {
+  @include touch-target;
+  display: none;
+  background: transparent;
+  border: none;
+  color: $text-secondary;
+  cursor: pointer;
+  padding: $spacing-xs;
+  border-radius: $border-radius-md;
+  transition: background-color $transition-fast, color $transition-fast;
+  position: fixed;
+  top: $spacing-md;
+  left: $spacing-md;
+  z-index: 997;
+  
+  @include responsive(mobile-only) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  &:hover, &:focus {
+    color: $purple-light;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
+// Utility class for screen readers
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Styles for body when sidenav is open
+:global {
+  body.sidenav-open {
+    overflow: hidden !important;
+    touch-action: none; // Prevent touch scrolling on mobile
+    overscroll-behavior: none; // Prevent bounce effects
+    -webkit-overflow-scrolling: auto; // Fix iOS issues
+  }
+}
