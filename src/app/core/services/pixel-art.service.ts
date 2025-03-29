@@ -12,7 +12,8 @@ export class PixelArtService {
   private mockDataService = inject(MockDataService);
   private http = inject(HttpClient);
   
-  private apiUrl = `${environment.apiUrl}/pixel-arts`;
+  private apiUrl = `${environment.apiUrl}/mongo/pixel-arts`;
+  private apiBaseUrl = environment.apiBaseUrl;
   
   // Estado de error
   readonly error = signal<string | null>(null);
@@ -20,6 +21,7 @@ export class PixelArtService {
   // Estado de carga
   readonly isLoading = signal<boolean>(false);
   
+  readonly isLoadingListImages = signal<boolean>(false);
   // Estado de procesamiento de imágenes
   readonly isProcessing = signal<boolean>(false);
   
@@ -49,6 +51,22 @@ export class PixelArtService {
   
   // Result image
   resultImage = signal<string | null>(null);
+
+  // Función para construir URLs absolutas
+private getFullUrl(url: string): string {
+  // Si la URL ya es absoluta, la devolvemos como está
+  if (url.startsWith('http')) {
+    return url;
+  }
+  
+  // Si estamos en desarrollo local con proxy, usamos la URL relativa
+  if (environment.apiBaseUrl === '') {
+    return url;
+  }
+  
+  // En otro caso, construimos la URL absoluta
+  return `${environment.apiBaseUrl}${url}`;
+}
   
   // Public API
   getPixelArtExamples() {
@@ -115,12 +133,9 @@ export class PixelArtService {
         console.log('✅ Imagen procesada correctamente:', result);
         
         if (result.imageUrl) {
-          // Asegurar que la URL es completa
-          const fullImageUrl = result.imageUrl.startsWith('http') 
-            ? result.imageUrl 
-            : `${environment.apiBaseUrl}${result.imageUrl}`;
-            
-          this.resultImage.set(fullImageUrl);
+         // Usar la función getFullUrl
+        const fullImageUrl = this.getFullUrl(result.imageUrl);
+        this.resultImage.set(fullImageUrl);
           this.savedPixelArts.update(current => [result, ...current]);
         } else {
           console.error('⚠️ Respuesta sin imageUrl:', result);
@@ -164,10 +179,7 @@ export class PixelArtService {
         
         if (result.imageUrl) {
           // Asegúrate de que la URL es completa o constrúyela adecuadamente
-          const fullImageUrl = result.imageUrl.startsWith('http') 
-            ? result.imageUrl 
-            : `${environment.apiBaseUrl}${result.imageUrl}`;
-            
+          const fullImageUrl = this.getFullUrl(result.imageUrl);
           this.resultImage.set(fullImageUrl);
           this.savedPixelArts.update(current => [result, ...current]);
         } else {
@@ -227,16 +239,41 @@ export class PixelArtService {
   }
 
   getPixelArtList() {
+  console.log(this.apiUrl)
+  this.isLoadingListImages.set(true)
     return this.http.get<any>(this.apiUrl).pipe(
       tap(result => {
         console.log('🎨 Datos obtenidos del backend:', result);
-        this.savedPixelArts.set(result.items)
+        const arts = result.items as PixelArt[];
+        console.log(result)
+        // Asegurarse de que todas las URLs son correctas
+        arts.forEach(art => {
+          if (art.imageUrl && !art.imageUrl.startsWith('http')) {
+            art.imageUrl = this.getFullUrl(art.imageUrl);
+          }
+          if (art.thumbnailUrl && !art.thumbnailUrl.startsWith('http')) {
+            art.thumbnailUrl = this.getFullUrl(art.thumbnailUrl);
+          }
+        });
+        
+        this.savedPixelArts.set(arts);
+        
+         setTimeout(()=>{
+          this.isLoadingListImages.set(false)
+         }, 0)
 
         console.log('📌 savedPixelArts actualizado:', this.savedPixelArts());
+      }),
+      catchError(error => {
+        console.error('❌ Error al obtener la lista de pixel arts:', error);
+        this.error.set(`Error al obtener la lista: ${error.message || error.statusText || 'Desconocido'}`);
+        return throwError(() => error);
       })
-    );
+    )  ;
   }
   
+
+
   
   
 }

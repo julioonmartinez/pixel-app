@@ -4,11 +4,12 @@ import { Router } from '@angular/router';
 import { MockDataService } from '../../core/services/mock-data.service';
 import { CardComponent } from '../../shared/components/card/card.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
-import { PixelateDirective } from '../../shared/directives/pixelate.directive';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { PixelArtService } from '../../core/services/pixel-art.service';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ImageUrlPipe } from '../../shared/pipes/image-url.pipe';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { PixelArtDetailComponent } from './pixel-art-detail/pixel-art-detail.component';
 
 @Component({
   selector: 'app-gallery',
@@ -18,7 +19,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
     FormsModule, 
     CardComponent, 
     ButtonComponent, 
-    PixelateDirective
+    ModalComponent,
+    PixelArtDetailComponent,
+    ImageUrlPipe // Ensure this pipe is correctly imported from its module
   ],
   template: `
     <div class="gallery-container">
@@ -80,8 +83,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
           </select>
         </div>
       </div>
-      
-      @if (filteredArtworks().length === 0) {
+      @if (isLoadingListImage()) {
+        <div class="processing-indicator">
+            <div class="spinner"></div>
+            <p>Cargando imágenes...</p>
+            <p class="processing-hint">Esto puede tardar unos milisegundos.</p>
+          </div>
+      }@else if (filteredArtworks().length === 0  ) {
         <div class="no-results">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -95,16 +103,37 @@ import { toSignal } from '@angular/core/rxjs-interop';
         </div>
       } @else {
         <div class="gallery-grid">
-        @for (art of filteredArtworks(); track art.id) {
-          <app-card [clickable]="true" (click)="openArtwork(art.id)">
-            <div class="gallery-item">
-              <div class="gallery-image">
-                <img [src]="art.thumbnailUrl" [alt]="art.name" />
+          @for (art of filteredArtworks(); track art.id) {
+            <app-card [clickable]="true" (click)="openPixelArtDetail(art)">
+              <div class="gallery-item">
+                <div class="gallery-image" [ngClass]="getAnimationClass(art)">
+                  <img [src]="art.thumbnailUrl | imageUrl" [alt]="art.name || 'Pixel Art'" />
+                </div>
+                <div class="gallery-info">
+                  <h3 class="gallery-item-title">{{ art.name || 'Sin título' }}</h3>
+                  
+                  <div class="gallery-meta">
+                    <span class="creation-date">{{ formatDate(art.createdAt) }}</span>
+                    <span class="style-badge" [ngClass]="'style-' + art.style">
+                      {{ getStyleName(art.style) }}
+                    </span>
+                  </div>
+                  
+                  @if (art.tags && art.tags.length > 0) {
+                    <div class="gallery-tags">
+                      @for (tag of art.tags.slice(0, 3); track tag) {
+                        <span class="tag">{{ tag }}</span>
+                      }
+                      @if (art.tags.length > 3) {
+                        <span class="tag tag-more">+{{ art.tags.length - 3 }}</span>
+                      }
+                    </div>
+                  }
+                </div>
               </div>
-            </div>
-          </app-card>
-        }
-        </div>
+            </app-card>
+          }
+</div>
       }
       
       <div class="gallery-pagination">
@@ -135,6 +164,20 @@ import { toSignal } from '@angular/core/rxjs-interop';
         </app-button>
       </div>
     </div>
+     <!-- Modal para detalles del pixel art -->
+     <app-modal 
+      [isOpen]="isModalOpen()" 
+      [title]="'Detalle de Pixel Art'"
+      [showFooter]="false"
+      (close)="closeModal()"
+    >
+      <app-pixel-art-detail
+        [pixelArt]="selectedPixelArt"
+        (editPixelArt)="editPixelArt($event)"
+        (downloadPixelArt)="downloadPixelArt($event)"
+        (sharePixelArt)="sharePixelArt($event)"
+      ></app-pixel-art-detail>
+    </app-modal>
   `,
   styleUrls: ['./gallery.component.scss']
 })
@@ -142,6 +185,8 @@ export class GalleryComponent {
   private mockDataService = inject(MockDataService);
   private pixelArtService = inject(PixelArtService);
   private router = inject(Router);
+
+  isLoadingListImage =this.pixelArtService.isLoadingListImages; 
   
   // Signals for state
   readonly allArtworks = signal<any[]>([]);
@@ -150,6 +195,10 @@ export class GalleryComponent {
   readonly sortOrder = signal<'newest' | 'oldest' | 'name'>('newest');
   readonly itemsPerPage = signal<number>(9);
   readonly currentPage = signal<number>(1);
+
+   // Signals para el modal
+   readonly isModalOpen = signal<boolean>(false);
+   readonly selectedPixelArt = signal<any | null>(null);
   
   // Computed signals
   readonly filteredArtworks = computed(() => {
@@ -219,18 +268,74 @@ export class GalleryComponent {
   
   constructor() {
     // Load data and initialize
-    this.pixelArtService.getPixelArtList().subscribe();
+    // Cargar datos e inicializar
+    this.pixelArtService.getPixelArtList().subscribe(
+      () => {}, // Manejador de success vacío (ya se actualiza en el servicio)
+      (error) => {
+        console.error('Error al cargar la lista de pixel arts:', error);
+        // Asegurar que el loading se desactiva incluso en caso de error
+        this.isLoadingListImage.set(false);
+      }
+    );
     
     // Create an effect to update allArtworks when savedPixelArts changes
     effect(() => {
       console.log('📢 savedPixelArts cambió:', this.pixelArtService.savedPixelArts());
       
       const arts = this.pixelArtService.savedPixelArts();
+      const load = this.pixelArtService.isLoadingListImages()
       if (arts && Array.isArray(arts)) {
         console.log('hay', arts);
         this.allArtworks.set(arts);
       }
+      if(load){
+        this.isLoadingListImage.set(load)
+      }
     });
+  }
+
+  // Nuevos métodos para el modal
+  openPixelArtDetail(artwork: any): void {
+    this.selectedPixelArt.set(artwork);
+    this.isModalOpen.set(true);
+  }
+  
+  closeModal(): void {
+    this.isModalOpen.set(false);
+  }
+
+  editPixelArt(id: string): void {
+    this.closeModal();
+    this.router.navigate(['/editor'], { queryParams: { art: id } });
+  }
+
+  downloadPixelArt(imageUrl: string): void {
+    // Crear un enlace para descargar la imagen
+    if (!imageUrl) return;
+    
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = `pixel-art-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  sharePixelArt(id: string): void {
+    // Aquí podrías implementar lógica para compartir
+    // Por ejemplo, mostrar otro modal con opciones de compartir
+    console.log('Compartir pixel art con ID:', id);
+    
+    // Para una implementación simple, podemos copiar un enlace al portapapeles
+    const shareUrl = `${window.location.origin}/view/${id}`;
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        // Aquí podrías mostrar una notificación de éxito
+        console.log('Enlace copiado al portapapeles:', shareUrl);
+      })
+      .catch(err => {
+        console.error('Error al copiar al portapapeles:', err);
+      });
   }
   
   // Métodos para interactuar con el estado
@@ -301,6 +406,23 @@ export class GalleryComponent {
   }
   
   openArtwork(id: string): void {
-    this.router.navigate(['/editor'], { queryParams: { art: id } });
+    // this.router.navigate(['/editor'], { queryParams: { art: id } });
   }
+
+  // Asegúrate de que estos métodos estén implementados en tu clase GalleryComponent
+
+
+
+
+
+
+
+// Si implementaste el modal directamente en el componente
+closeOnBackdrop(event: MouseEvent): void {
+  if (event.target === event.currentTarget) {
+    this.closeModal();
+  }
+}
+
+
 }
