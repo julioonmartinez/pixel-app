@@ -1,10 +1,27 @@
-//src/core/services/pixel-art.services.ts
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { PixelArt, PixelArtStyle, BackgroundType, AnimationType, PixelArtUpdateWithImage, PixelArtVersion } from '../models/pixel-art.model';
+import { PixelArt, PixelArtStyle, BackgroundType, AnimationType, PixelArtVersion } from '../models/pixel-art.model';
 import { MockDataService } from './mock-data.service';
-import { catchError, finalize, tap, throwError, Observable } from 'rxjs';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { catchError, finalize, tap, throwError, Observable, switchMap, of } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+
+// Tipo para los ajustes de pixel art
+export interface PixelArtSettings {
+  pixelSize: number;
+  style: PixelArtStyle;
+  paletteId: string;
+  contrast: number;
+  sharpness: number;
+  backgroundType: BackgroundType;
+  animationType: AnimationType;
+}
+
+// Tipo para estados de carga
+export type LoadingState = {
+  list: boolean;
+  processing: boolean;
+  saving: boolean;
+};
 
 @Injectable({
   providedIn: 'root'
@@ -14,20 +31,24 @@ export class PixelArtService {
   private http = inject(HttpClient);
   
   private apiUrl = `${environment.apiUrl}/mongo/pixel-arts`;
-  private apiBaseUrl = environment.apiBaseUrl;
+  
+  // Estado consolidado de carga para diferentes operaciones
+  private readonly loadingState = signal<LoadingState>({
+    list: false,
+    processing: false,
+    saving: false
+  });
+  
+  // Estados públicos derivados para mejor encapsulamiento
+  readonly isProcessing = computed(() => this.loadingState().processing);
+  readonly isLoadingList = computed(() => this.loadingState().list);
+  readonly isSaving = computed(() => this.loadingState().saving);
   
   // Estado de error
   readonly error = signal<string | null>(null);
   
-  // Estado de carga
-  readonly isLoading = signal<boolean>(false);
-  
-  readonly isLoadingListImages = signal<boolean>(false);
-  // Estado de procesamiento de imágenes
-  readonly isProcessing = signal<boolean>(false);
-  
-  // Current editing state using signals
-  private currentSettings = signal({
+  // Ajustes actuales usando signal
+  private readonly currentSettings = signal<PixelArtSettings>({
     pixelSize: 8,
     style: PixelArtStyle.RETRO_8BIT,
     paletteId: 'gameboy',
@@ -38,224 +59,239 @@ export class PixelArtService {
   });
 
   // Lista de pixel arts guardados
-  savedPixelArts = signal<PixelArt[]>([]);
+  readonly savedPixelArts = signal<PixelArt[]>([]);
   
-  // Computed values
-  currentPalette = computed(() => {
+  // Valores computed
+  readonly currentPalette = computed(() => {
     const paletteId = this.currentSettings().paletteId;
     return this.mockDataService.getPalettes()().find(p => p.id === paletteId);
   });
   
-  // Source image data
-  sourceImage = signal<string | null>(null);
-  sourcePrompt = signal<string>('');
+  // Datos de imagen fuente
+  readonly sourceImage = signal<string | null>(null);
+  readonly sourcePrompt = signal<string>('');
   
-  // Result image
-  resultImage = signal<string | null>(null);
-  resultPixelArt = signal<PixelArt | null>(null);
+  // Imágenes de resultado
+  readonly resultImage = signal<string | null>(null);
+  readonly resultPixelArt = signal<PixelArt | null>(null);
 
-  // Función para construir URLs absolutas
-  private getFullUrl(url: string): string {
-    // Si la URL ya es absoluta, la devolvemos como está
-    if (url.startsWith('http')) {
-      return url;
-    }
-    
-    // Si estamos en desarrollo local con proxy, usamos la URL relativa
-    if (environment.apiBaseUrl === '') {
-      return url;
-    }
-    
-    // En otro caso, construimos la URL absoluta
+  // Método para normalizar URLs
+  private getFullUrl(url: string | null): string | null {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    if (environment.apiBaseUrl === '') return url;
     return `${environment.apiBaseUrl}${url}`;
   }
   
-  // Public API
+  // Método para normalizar fechas
+  private normalizeDate(date: string | Date | undefined): Date | undefined {
+    if (!date) return undefined;
+    return typeof date === 'string' ? new Date(date) : date;
+  }
+  
+  // Método para normalizar los datos de PixelArt recibidos del backend
+  private normalizePixelArt(art: PixelArt): PixelArt {
+    // Crear copia para no mutar el original
+    const normalized: PixelArt = { ...art };
+    
+    // Normalizar URLs
+    normalized.imageUrl = this.getFullUrl(art.imageUrl) || '';
+    normalized.thumbnailUrl = this.getFullUrl(art.thumbnailUrl) || '';
+    
+    // Normalizar fechas
+    normalized.createdAt = this.normalizeDate(art.createdAt) || new Date();
+    if (art.updatedAt) {
+      normalized.updatedAt = this.normalizeDate(art.updatedAt);
+    }
+    
+    // Normalizar historial de versiones
+    if (normalized.versionHistory) {
+      normalized.versionHistory = normalized.versionHistory.map(version => ({
+        ...version,
+        imageUrl: this.getFullUrl(version.imageUrl) || '',
+        thumbnailUrl: this.getFullUrl(version.thumbnailUrl) || ''
+      }));
+    }
+    
+    return normalized;
+  }
+  
+  // Método unificado para manejar errores HTTP
+  private handleHttpError(error: HttpErrorResponse, operation: string): Observable<never> {
+    console.error(`❌ Error en ${operation}:`, error);
+    
+    let errorMsg = 'Error desconocido';
+    if (error.error?.detail) {
+      errorMsg = error.error.detail;
+    } else if (error.message) {
+      errorMsg = error.message;
+    } else if (error.statusText) {
+      errorMsg = error.statusText;
+    }
+    
+    this.error.set(`Error al ${operation}: ${errorMsg}`);
+    return throwError(() => error);
+  }
+  
+  // Método para actualizar el estado de carga
+  private updateLoadingState(key: keyof LoadingState, value: boolean): void {
+    this.loadingState.update(state => ({
+      ...state,
+      [key]: value
+    }));
+  }
+  
+  // Actualizar la lista de PixelArts si el resultado es nuevo o modificado
+  private updateArtworksList(artwork: PixelArt): void {
+    this.savedPixelArts.update(arts => {
+      const index = arts.findIndex(art => art.id === artwork.id);
+      
+      if (index >= 0) {
+        // Actualizar existente
+        const updatedArts = [...arts];
+        updatedArts[index] = artwork;
+        return updatedArts;
+      } else {
+        // Añadir nuevo al inicio
+        return [artwork, ...arts];
+      }
+    });
+  }
+  
+  // API pública
+  
+  /**
+   * Obtiene ejemplos de PixelArt desde el servicio de datos mock
+   */
   getPixelArtExamples() {
     return this.mockDataService.getPixelArtExamples();
   }
   
-  getPixelArts(){
-    return this.savedPixelArts()
+  /**
+   * Retorna los PixelArts guardados
+   */
+  getPixelArts(): PixelArt[] {
+    return this.savedPixelArts();
   }
   
+  /**
+   * Obtiene los ajustes actuales de generación de PixelArt
+   */
   getSettings() {
     return this.currentSettings;
   }
   
-  updateSettings(settings: Partial<ReturnType<typeof this.currentSettings>>) {
+  /**
+   * Actualiza los ajustes de generación de PixelArt
+   * @param settings Ajustes parciales a actualizar
+   */
+  updateSettings(settings: Partial<PixelArtSettings>): void {
     this.currentSettings.update(current => ({...current, ...settings}));
   }
   
-  setSourceImage(imageDataUrl: string) {
+  /**
+   * Establece la imagen fuente y la procesa automáticamente
+   * @param imageDataUrl URL de datos de la imagen (base64)
+   * @param processImmediately Si debe procesarse inmediatamente
+   */
+  setSourceImage(imageDataUrl: string, processImmediately = true): void {
     this.sourceImage.set(imageDataUrl);
-    this.processImage();
+    
+    if (processImmediately) {
+      this.processImage();
+    }
   }
 
+  /**
+   * Obtiene un PixelArt por su ID
+   * @param id ID del PixelArt
+   */
   getPixelArtById(id: string): Observable<PixelArt> {
     return this.http.get<PixelArt>(`${this.apiUrl}/${id}`).pipe(
       tap(result => {
         console.log('📋 Pixel art cargado:', result);
         
-        // Convertir timestamps de version history a fechas
-        if (result.versionHistory) {
-          result.versionHistory = result.versionHistory.map(version => ({
-            ...version,
-            timestamp: version.timestamp // Mantener como string
-          }));
-        }
-        
-        // Convertir dates a objetos Date
-        if (typeof result.createdAt === 'string') {
-          result.createdAt = new Date(result.createdAt);
-        }
-        if (result.updatedAt && typeof result.updatedAt === 'string') {
-          result.updatedAt = new Date(result.updatedAt);
-        }
-        
-        // Asegurarse de que las URLs sean completas
-        if (result.imageUrl && !result.imageUrl.startsWith('http')) {
-          result.imageUrl = this.getFullUrl(result.imageUrl);
-        }
-        if (result.thumbnailUrl && !result.thumbnailUrl.startsWith('http')) {
-          result.thumbnailUrl = this.getFullUrl(result.thumbnailUrl);
-        }
-
-        // También actualizar URLs en el historial de versiones
-        if (result.versionHistory) {
-          result.versionHistory.forEach(version => {
-            if (version.imageUrl && !version.imageUrl.startsWith('http')) {
-              version.imageUrl = this.getFullUrl(version.imageUrl);
-            }
-            if (version.thumbnailUrl && !version.thumbnailUrl.startsWith('http')) {
-              version.thumbnailUrl = this.getFullUrl(version.thumbnailUrl);
-            }
-          });
-        }
-        
-        // Actualizar el pixel art actual
-        this.resultPixelArt.set(result);
+        // Normalizar y actualizar estado
+        const normalizedArt = this.normalizePixelArt(result);
+        this.resultPixelArt.set(normalizedArt);
       }),
-      catchError(error => {
-        console.error('❌ Error al cargar el pixel art:', error);
-        this.error.set(`Error al cargar el pixel art: ${error.message || error.statusText || 'Desconocido'}`);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleHttpError(error, 'cargar el pixel art'))
     );
   }
   
-  setSourcePrompt(prompt: string) {
+  /**
+   * Establece el prompt fuente y genera una imagen si es válido
+   * @param prompt Texto del prompt
+   * @param generateImmediately Si debe generarse inmediatamente
+   */
+  setSourcePrompt(prompt: string, generateImmediately = true): void {
     this.sourcePrompt.set(prompt);
-    if (prompt.length > 10) {
-      this.generateFromPrompt();
+    
+    if (generateImmediately && prompt.length > 10) {
+      this.generateFromPrompt().subscribe() ;
     }
   }
   
-// Actualizar un pixel art existente con un nuevo prompt visual
-updatePixelArtWithPrompt(id: string, prompt: string) {
-  if (!prompt || prompt.length < 5) {
-    this.error.set('❌ El prompt es demasiado corto');
-    return;
-  }
-
-  this.isProcessing.set(true);
-  this.error.set(null);
-
-  // Obtener los ajustes actuales
-  const settings = this.currentSettings();
-  
-  // Preparar los datos de actualización alineados con lo que espera FastAPI
-  const requestBody = {
-    // Este objeto será asignado a pixel_art_update
-    "pixel_art_update": {
-      "pixelSize": settings.pixelSize,
-      "style": settings.style,
-      "backgroundType": settings.backgroundType,
-      "animationType": settings.animationType,
-      "paletteId": settings.paletteId
-    },
-    // Estos serán asignados a los parámetros individuales
-    "prompt": prompt,
-    "apply_changes_to_image": true
-  };
-
-  console.log('🚀 Enviando solicitud de actualización:', requestBody);
-
-  return this.http.put<PixelArt>(`${this.apiUrl}/${id}`, requestBody,
-    {
-      // Asegúrate de tener el Content-Type correcto
-      headers: {
-        'Content-Type': 'application/json'
-      }
+  /**
+   * Actualiza un PixelArt existente con un nuevo prompt
+   * @param id ID del PixelArt
+   * @param prompt Nuevo prompt para actualizar
+   */
+  updatePixelArtWithPrompt(id: string, prompt: string): Observable<PixelArt | null> {
+    if (!prompt || prompt.length < 5) {
+      this.error.set('❌ El prompt es demasiado corto');
+      return of(null);
     }
-  ).pipe(
-    tap(result => {
-      console.log('✅ Pixel art actualizado:', result);
-      
-      // Asegurarse de que las URLs son completas
-      if (result.imageUrl) {
-        const fullImageUrl = this.getFullUrl(result.imageUrl);
-        result.imageUrl = fullImageUrl;
-        this.resultImage.set(fullImageUrl);
-      }
-      if (result.thumbnailUrl) {
-        result.thumbnailUrl = this.getFullUrl(result.thumbnailUrl);
-      }
-      
-      // Actualizar historial de versiones
-      if (result.versionHistory) {
-        result.versionHistory.forEach(version => {
-          if (version.imageUrl && !version.imageUrl.startsWith('http')) {
-            version.imageUrl = this.getFullUrl(version.imageUrl);
-          }
-          if (version.thumbnailUrl && !version.thumbnailUrl.startsWith('http')) {
-            version.thumbnailUrl = this.getFullUrl(version.thumbnailUrl);
-          }
-        });
-      }
-      
-      // Actualizar pixel art actual
-      this.resultPixelArt.set(result);
-      
-      // Actualizar lista si existe en ella
-      this.savedPixelArts.update(arts => {
-        const index = arts.findIndex(art => art.id === result.id);
-        if (index >= 0) {
-          const updatedArts = [...arts];
-          updatedArts[index] = result;
-          return updatedArts;
-        }
-        return arts;
-      });
-    }),
-    catchError(error => {
-      console.error('❌ Error al actualizar el pixel art:', error);
-      
-      // Intentar extraer un mensaje de error más detallado
-      let errorMsg = 'Desconocido';
-      if (error.error && error.error.detail) {
-        errorMsg = error.error.detail;
-      } else if (error.message) {
-        errorMsg = error.message;
-      } else if (error.statusText) {
-        errorMsg = error.statusText;
-      }
-      
-      this.error.set(`Error al actualizar: ${errorMsg}`);
-      return throwError(() => error);
-    }),
-    finalize(() => {
-      this.isProcessing.set(false);
-    })
-  );
-}
-  
-  // Restaurar una versión anterior del historial
-  restoreVersion(pixelArtId: string, version: PixelArtVersion) {
-    this.isProcessing.set(true);
+
+    this.updateLoadingState('processing', true);
     this.error.set(null);
 
-    // Crear una actualización simple para restaurar la versión
+    const settings = this.currentSettings();
+    
+    const requestBody = {
+      "pixel_art_update": {
+        "pixelSize": settings.pixelSize,
+        "style": settings.style,
+        "backgroundType": settings.backgroundType,
+        "animationType": settings.animationType,
+        "paletteId": settings.paletteId
+      },
+      "prompt": prompt,
+      "apply_changes_to_image": true
+    };
+
+    console.log('🚀 Enviando solicitud de actualización:', requestBody);
+
+    return this.http.put<PixelArt>(
+      `${this.apiUrl}/${id}`, 
+      requestBody,
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(
+      tap(result => {
+        console.log('✅ Pixel art actualizado:', result);
+        
+        // Normalizar y actualizar estado
+        const normalizedArt = this.normalizePixelArt(result);
+        this.resultImage.set(normalizedArt.imageUrl);
+        this.resultPixelArt.set(normalizedArt);
+        
+        // Actualizar lista
+        this.updateArtworksList(normalizedArt);
+      }),
+      catchError(error => this.handleHttpError(error, 'actualizar el pixel art')),
+      finalize(() => this.updateLoadingState('processing', false))
+    );
+  }
+  
+  /**
+   * Restaura una versión anterior de un PixelArt
+   * @param pixelArtId ID del PixelArt
+   * @param version Versión a restaurar
+   */
+  restoreVersion(pixelArtId: string, version: PixelArtVersion): Observable<PixelArt> {
+    this.updateLoadingState('processing', true);
+    this.error.set(null);
+
     const updateRequest = {
       imageUrl: version.imageUrl,
       thumbnailUrl: version.thumbnailUrl,
@@ -264,53 +300,34 @@ updatePixelArtWithPrompt(id: string, prompt: string) {
 
     console.log('🔄 Restaurando versión anterior:', version.timestamp);
 
-    this.http.put<PixelArt>(`${this.apiUrl}/${pixelArtId}`, updateRequest).pipe(
+    return this.http.put<PixelArt>(`${this.apiUrl}/${pixelArtId}`, updateRequest).pipe(
       tap(result => {
         console.log('✅ Versión restaurada:', result);
         
-        // Asegurarse de que las URLs son completas
-        if (result.imageUrl) {
-          const fullImageUrl = this.getFullUrl(result.imageUrl);
-          result.imageUrl = fullImageUrl;
-          this.resultImage.set(fullImageUrl);
-        }
-        if (result.thumbnailUrl) {
-          result.thumbnailUrl = this.getFullUrl(result.thumbnailUrl);
-        }
+        // Normalizar y actualizar estado
+        const normalizedArt = this.normalizePixelArt(result);
+        this.resultImage.set(normalizedArt.imageUrl);
+        this.resultPixelArt.set(normalizedArt);
         
-        // Actualizar pixel art actual
-        this.resultPixelArt.set(result);
-        
-        // Actualizar lista si existe en ella
-        this.savedPixelArts.update(arts => {
-          const index = arts.findIndex(art => art.id === result.id);
-          if (index >= 0) {
-            const updatedArts = [...arts];
-            updatedArts[index] = result;
-            return updatedArts;
-          }
-          return arts;
-        });
+        // Actualizar lista
+        this.updateArtworksList(normalizedArt);
       }),
-      catchError(error => {
-        console.error('❌ Error al restaurar la versión:', error);
-        this.error.set(`Error al restaurar: ${error.message || error.statusText || 'Desconocido'}`);
-        return throwError(() => error);
-      }),
-      finalize(() => {
-        this.isProcessing.set(false);
-      })
-    ).subscribe();
+      catchError(error => this.handleHttpError(error, 'restaurar la versión')),
+      finalize(() => this.updateLoadingState('processing', false))
+    );
   }
   
-  // Procesar imagen utilizando el backend
-  processImage(additionalPrompt?: string) {
+  /**
+   * Procesa una imagen utilizando el backend
+   * @param additionalPrompt Prompt adicional opcional
+   */
+  processImage(additionalPrompt?: string): Observable<PixelArt | null> {
     if (!this.sourceImage()) {
       this.error.set('No hay imagen para procesar');
-      return;
+      return of(null);
     }
 
-    this.isProcessing.set(true);
+    this.updateLoadingState('processing', true);
     this.error.set(null);
     
     // Convertir dataURL a archivo
@@ -319,15 +336,15 @@ updatePixelArtWithPrompt(id: string, prompt: string) {
       `image_${Date.now()}.png`
     );
     
-    // Crear FormData para enviar al backend
+    // Crear FormData
     const formData = new FormData();
     formData.append('file', imageFile);
     formData.append('name', `Pixel Art ${new Date().toLocaleString()}`);
     formData.append('pixelSize', this.currentSettings().pixelSize.toString());
     formData.append('style', this.currentSettings().style);
     formData.append('paletteId', this.currentSettings().paletteId);
-    formData.append('contrast', '50');
-    formData.append('sharpness', '70');
+    formData.append('contrast', this.currentSettings().contrast.toString());
+    formData.append('sharpness', this.currentSettings().sharpness.toString());
     formData.append('backgroundType', this.currentSettings().backgroundType);
     formData.append('animationType', this.currentSettings().animationType);
     formData.append('tags', 'uploaded');
@@ -340,54 +357,38 @@ updatePixelArtWithPrompt(id: string, prompt: string) {
 
     console.log('🚀 Enviando imagen al backend para procesar');
     
-    // Enviar al backend
-    this.http.post<PixelArt>(`${this.apiUrl}/process-image`, formData).pipe(
+    return this.http.post<PixelArt>(`${this.apiUrl}/process-image`, formData).pipe(
       tap(result => {
         console.log('✅ Imagen procesada correctamente:', result);
         
         if (result.imageUrl) {
-          // Usar la función getFullUrl
-          const fullImageUrl = this.getFullUrl(result.imageUrl);
-          result.imageUrl = fullImageUrl;
-          this.resultImage.set(fullImageUrl);
+          // Normalizar y actualizar estado
+          const normalizedArt = this.normalizePixelArt(result);
+          this.resultImage.set(normalizedArt.imageUrl);
+          this.resultPixelArt.set(normalizedArt);
           
-          // Convertir fechas si es necesario
-          if (typeof result.createdAt === 'string') {
-            result.createdAt = new Date(result.createdAt);
-          }
-          if (result.updatedAt && typeof result.updatedAt === 'string') {
-            result.updatedAt = new Date(result.updatedAt);
-          }
-          
-          // Guardar el resultado actual
-          this.resultPixelArt.set(result);
-          
-          // Actualizar la lista de pixel arts
-          this.savedPixelArts.update(current => [result, ...current]);
+          // Actualizar lista
+          this.updateArtworksList(normalizedArt);
         } else {
           console.error('⚠️ Respuesta sin imageUrl:', result);
           this.error.set('La respuesta no contiene una imagen válida');
         }
       }),
-      catchError(error => {
-        console.error('❌ Error al procesar la imagen:', error);
-        this.error.set(`Error al procesar la imagen: ${error.message || error.statusText || 'Desconocido'}`);
-        return throwError(() => error);
-      }),
-      finalize(() => {
-        this.isProcessing.set(false);
-      })
-    ).subscribe();
+      catchError(error => this.handleHttpError(error, 'procesar la imagen')),
+      finalize(() => this.updateLoadingState('processing', false))
+    );
   }
   
-  // Método para generar imagen desde prompt
-  generateFromPrompt() {
+  /**
+   * Genera una imagen desde un prompt
+   */
+  generateFromPrompt(): Observable<PixelArt | null> {
     if (!this.sourcePrompt() || this.sourcePrompt().length < 3) {
       this.error.set('❌ El prompt es demasiado corto');
-      return;
+      return of(null);
     }
 
-    this.isProcessing.set(true);
+    this.updateLoadingState('processing', true);
     this.error.set(null);
 
     const request = {
@@ -396,49 +397,38 @@ updatePixelArtWithPrompt(id: string, prompt: string) {
     };
 
     console.log('🚀 Enviando solicitud al backend:', request);
-    console.log('🌍 URL de destino:', `${this.apiUrl}/generate-from-prompt`);
 
-    this.http.post<PixelArt>(`${this.apiUrl}/generate-from-prompt`, request, {
-      headers: { 'Content-Type': 'application/json' }
-    }).pipe(
+    return this.http.post<PixelArt>(
+      `${this.apiUrl}/generate-from-prompt`, 
+      request, 
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(
       tap(result => {
         console.log('✅ Respuesta del backend:', result);
         
         if (result.imageUrl) {
-          // Asegúrate de que la URL es completa o constrúyela adecuadamente
-          const fullImageUrl = this.getFullUrl(result.imageUrl);
-          result.imageUrl = fullImageUrl;
-          this.resultImage.set(fullImageUrl);
+          // Normalizar y actualizar estado
+          const normalizedArt = this.normalizePixelArt(result);
+          this.resultImage.set(normalizedArt.imageUrl);
+          this.resultPixelArt.set(normalizedArt);
           
-          // Convertir fechas si es necesario
-          if (typeof result.createdAt === 'string') {
-            result.createdAt = new Date(result.createdAt);
-          }
-          if (result.updatedAt && typeof result.updatedAt === 'string') {
-            result.updatedAt = new Date(result.updatedAt);
-          }
-          
-          // Guardar el resultado actual
-          this.resultPixelArt.set(result);
-          
-          this.savedPixelArts.update(current => [result, ...current]);
+          // Actualizar lista
+          this.updateArtworksList(normalizedArt);
         } else {
           console.error('⚠️ Respuesta sin imageUrl:', result);
           this.error.set('La respuesta no contiene una imagen válida');
         }
       }),
-      catchError(error => {
-        console.error('❌ Error detallado:', error);
-        this.error.set(`Error al generar la imagen: ${error.message || error.statusText || 'Desconocido'}`);
-        return throwError(() => error);
-      }),
-      finalize(() => {
-        this.isProcessing.set(false);
-      })
-    ).subscribe();
+      catchError(error => this.handleHttpError(error, 'generar la imagen')),
+      finalize(() => this.updateLoadingState('processing', false))
+    );
   }
   
-  // Utilidad para convertir dataURL a File
+  /**
+   * Convierte dataURL a File
+   * @param dataurl URL de datos (base64)
+   * @param filename Nombre del archivo
+   */
   private dataURLtoFile(dataurl: string, filename: string): File {
     const arr = dataurl.split(',');
     const mime = arr[0].match(/:(.*?);/)![1];
@@ -453,85 +443,70 @@ updatePixelArtWithPrompt(id: string, prompt: string) {
     return new File([u8arr], filename, { type: mime });
   }
   
-  // Save pixel art
-  savePixelArt(name: string) {
-    if (!this.resultImage()) return;
+  /**
+   * Guarda un PixelArt
+   * @param name Nombre del PixelArt
+   * @param tags Etiquetas opcionales
+   */
+  savePixelArt(name: string, tags: string[] = []): PixelArt | null {
+    if (!this.resultImage()) return null;
     
     const newArt: PixelArt = {
       id: Date.now().toString(),
       name: name,
       imageUrl: this.resultImage()!,
-      thumbnailUrl: this.resultImage()!, // In a real app, we'd generate a thumbnail
+      thumbnailUrl: this.resultImage()!,
       createdAt: new Date(),
-      width: 64, // In a real app, these would be actual dimensions
+      width: 64,
       height: 64,
       pixelSize: this.currentSettings().pixelSize,
       style: this.currentSettings().style,
       backgroundType: this.currentSettings().backgroundType,
       palette: this.currentPalette()!,
-      tags: [],
+      tags: tags,
       isAnimated: this.currentSettings().animationType !== AnimationType.NONE,
       animationType: this.currentSettings().animationType,
       prompt: this.sourcePrompt() || undefined
     };
     
     this.mockDataService.addPixelArt(newArt);
+    this.updateArtworksList(newArt);
     return newArt;
   }
 
-  getPixelArtList() {
-    console.log(this.apiUrl);
-    this.isLoadingListImages.set(true);
-    return this.http.get<any>(this.apiUrl).pipe(
+  /**
+   * Obtiene la lista de PixelArts desde el backend
+   */
+  getPixelArtList(): Observable<PixelArt[]> {
+    this.updateLoadingState('list', true);
+    
+    return this.http.get<{items: PixelArt[]}>(this.apiUrl).pipe(
       tap(result => {
         console.log('🎨 Datos obtenidos del backend:', result);
-        const arts = result.items as PixelArt[];
         
-        // Asegurarse de que todas las URLs son correctas y convertir fechas
-        arts.forEach(art => {
-          // Convertir dates a objetos Date
-          if (typeof art.createdAt === 'string') {
-            art.createdAt = new Date(art.createdAt);
-          }
-          if (art.updatedAt && typeof art.updatedAt === 'string') {
-            art.updatedAt = new Date(art.updatedAt);
-          }
-          
-          // Asegurarse de que las URLs son completas
-          if (art.imageUrl && !art.imageUrl.startsWith('http')) {
-            art.imageUrl = this.getFullUrl(art.imageUrl);
-          }
-          if (art.thumbnailUrl && !art.thumbnailUrl.startsWith('http')) {
-            art.thumbnailUrl = this.getFullUrl(art.thumbnailUrl);
-          }
-          
-          // Actualizar también el historial de versiones
-          if (art.versionHistory) {
-            art.versionHistory.forEach(version => {
-              if (version.imageUrl && !version.imageUrl.startsWith('http')) {
-                version.imageUrl = this.getFullUrl(version.imageUrl);
-              }
-              if (version.thumbnailUrl && !version.thumbnailUrl.startsWith('http')) {
-                version.thumbnailUrl = this.getFullUrl(version.thumbnailUrl);
-              }
-            });
-          }
-        });
+        // Normalizar todos los PixelArts
+        const normalizedArts = (result.items || []).map(art => this.normalizePixelArt(art));
+        this.savedPixelArts.set(normalizedArts);
         
-        this.savedPixelArts.set(arts);
-        
-        setTimeout(() => {
-          this.isLoadingListImages.set(false);
-        }, 0);
-
         console.log('📌 savedPixelArts actualizado:', this.savedPixelArts());
       }),
+      switchMap(result => of(result.items)), // Convertir a Observable<PixelArt[]>
       catchError(error => {
-        console.error('❌ Error al obtener la lista de pixel arts:', error);
-        this.error.set(`Error al obtener la lista: ${error.message || error.statusText || 'Desconocido'}`);
-        this.isLoadingListImages.set(false);
-        return throwError(() => error);
-      })
+        this.handleHttpError(error, 'obtener la lista');
+        return of([]); // Devolver array vacío en caso de error
+      }),
+      finalize(() => this.updateLoadingState('list', false))
     );
+  }
+  
+  /**
+   * Limpia todos los datos temporales (reset)
+   */
+  resetState(): void {
+    this.sourceImage.set(null);
+    this.sourcePrompt.set('');
+    this.resultImage.set(null);
+    this.resultPixelArt.set(null);
+    this.error.set(null);
   }
 }

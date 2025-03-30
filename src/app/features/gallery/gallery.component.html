@@ -1,0 +1,175 @@
+<!-- src/app/features/gallery/gallery.component.html -->
+<div class="gallery-container">
+    <!-- Encabezado de la galería -->
+    <div class="gallery-header">
+      <h1 class="gallery-title">Galería de Pixel Art</h1>
+      <p class="gallery-subtitle">Explora creaciones de la comunidad o tus propios diseños guardados</p>
+    </div>
+    
+    <!-- Filtros y herramientas de búsqueda -->
+    <div class="gallery-filters">
+      <div class="filter-section">
+        <!-- Barra de búsqueda -->
+        <div class="search-bar">
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre o etiqueta..." 
+            [(ngModel)]="searchTerm"
+            (input)="filterGallery()"
+          >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        
+        <!-- Botones de filtro -->
+        <div class="filter-buttons">
+          <button 
+            class="filter-btn" 
+            [class.active]="activeFilter() === 'all'"
+            (click)="setFilter('all')"
+          >
+            Todos
+          </button>
+          <button 
+            class="filter-btn" 
+            [class.active]="activeFilter() === 'saved'"
+            (click)="setFilter('saved')"
+          >
+            Guardados
+          </button>
+          <button 
+            class="filter-btn" 
+            [class.active]="activeFilter() === 'recent'"
+            (click)="setFilter('recent')"
+          >
+            Recientes
+          </button>
+        </div>
+      </div>
+      
+      <!-- Selector de ordenación -->
+      <div class="sort-section">
+        <label for="sortOrder">Ordenar por:</label>
+        <select 
+          id="sortOrder" 
+          [(ngModel)]="sortOrder"
+          (change)="filterGallery()"
+        >
+          <option value="newest">Más recientes</option>
+          <option value="oldest">Más antiguos</option>
+          <option value="name">Nombre (A-Z)</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Estado de carga -->
+    @if (isLoadingList()) {
+      <div class="processing-indicator">
+        <div class="spinner"></div>
+        <p>Cargando imágenes...</p>
+        <p class="processing-hint">Esto puede tardar unos milisegundos.</p>
+      </div>
+    } 
+    
+    <!-- Sin resultados -->
+    @else if (filteredArtworks().length === 0) {
+      <div class="no-results">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <p>No se encontraron resultados para tu búsqueda</p>
+        <app-button variant="secondary" (onClick)="resetFilters()">
+          Limpiar filtros
+        </app-button>
+      </div>
+    } 
+    
+    <!-- Grid de resultados -->
+    @else {
+      <div class="gallery-grid">
+        @for (art of filteredArtworks(); track art.id) {
+          <app-card [clickable]="true" (click)="openPixelArtDetail(art)">
+            <div class="gallery-item">
+              <div class="gallery-image" [ngClass]="getAnimationClass(art)">
+                <img 
+                  [src]="art.thumbnailUrl | imageUrl" 
+                  [alt]="art.name || 'Pixel Art'"
+                  class="image-loading"
+                  (load)="onImageLoad($event)"
+                />
+              </div>
+              <div class="gallery-info">
+                <h3 class="gallery-item-title">{{ art.name || 'Sin título' }}</h3>
+                
+                <div class="gallery-meta">
+                  <span class="creation-date">{{ formatDate(art.createdAt) }}</span>
+                  <span class="style-badge" [ngClass]="'style-' + art.style">
+                    {{ getStyleName(art.style) }}
+                  </span>
+                </div>
+                
+                @if (art.tags && art.tags.length > 0) {
+                  <div class="gallery-tags">
+                    @for (tag of art.tags.slice(0, 3); track tag) {
+                      <span class="tag">{{ tag }}</span>
+                    }
+                    @if (art.tags.length > 3) {
+                      <span class="tag tag-more">+{{ art.tags.length - 3 }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </app-card>
+        }
+      </div>
+    }
+    
+    <!-- Paginación -->
+    <div class="gallery-pagination">
+      <app-button 
+        variant="secondary" 
+        [disabled]="currentPage() === 1"
+        (onClick)="previousPage()"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Anterior
+      </app-button>
+      
+      <span class="page-info">
+        Página {{ currentPage() }} de {{ totalPages() }}
+      </span>
+      
+      <app-button 
+        variant="secondary" 
+        [disabled]="currentPage() === totalPages()"
+        (onClick)="nextPage()"
+      >
+        Siguiente
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </app-button>
+    </div>
+  </div>
+  
+  <!-- Modal para detalles del pixel art -->
+  <app-modal 
+    [isOpen]="isModalOpen()" 
+    [title]="'Detalle de Pixel Art'"
+    [showFooter]="false"
+    (close)="closeModal()"
+  >
+    <app-pixel-art-detail
+      [pixelArt]="selectedPixelArt"
+      (editPixelArt)="editPixelArt($event)"
+      (downloadPixelArt)="downloadPixelArt($event)"
+      (sharePixelArt)="sharePixelArt($event)"
+    ></app-pixel-art-detail>
+  </app-modal>

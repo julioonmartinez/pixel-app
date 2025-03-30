@@ -1,16 +1,27 @@
 // src/app/features/gallery/gallery.component.ts
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { Router } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
+
+// Servicios y modelos
 import { MockDataService } from '../../core/services/mock-data.service';
+import { PixelArtService } from '../../core/services/pixel-art.service';
+import { PixelArt } from '../../core/models/pixel-art.model';
+
+// Componentes e imports de Angular
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+
+// Componentes compartidos
 import { CardComponent } from '../../shared/components/card/card.component';
 import { ButtonComponent } from '../../shared/components/button/button.component';
-import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-import { PixelArtService } from '../../core/services/pixel-art.service';
-import { ImageUrlPipe } from '../../shared/pipes/image-url.pipe';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { ImageUrlPipe } from '../../shared/pipes/image-url.pipe';
 import { PixelArtDetailComponent } from './pixel-art-detail/pixel-art-detail.component';
 
+/**
+ * Componente de galería que muestra y filtra pixel arts
+ */
 @Component({
   selector: 'app-gallery',
   standalone: true,
@@ -21,200 +32,45 @@ import { PixelArtDetailComponent } from './pixel-art-detail/pixel-art-detail.com
     ButtonComponent, 
     ModalComponent,
     PixelArtDetailComponent,
-    ImageUrlPipe // Ensure this pipe is correctly imported from its module
+    ImageUrlPipe
   ],
-  template: `
-    <div class="gallery-container">
-      <div class="gallery-header">
-        <h1 class="gallery-title">Galería de Pixel Art</h1>
-        <p class="gallery-subtitle">Explora creaciones de la comunidad o tus propios diseños guardados</p>
-      </div>
-      
-      <div class="gallery-filters">
-        <div class="filter-section">
-          <div class="search-bar">
-            <input 
-              type="text" 
-              placeholder="Buscar por nombre o etiqueta..." 
-              [(ngModel)]="searchTerm"
-              (input)="filterGallery()"
-            >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </div>
-          
-          <div class="filter-buttons">
-            <button 
-              class="filter-btn" 
-              [class.active]="activeFilter() === 'all'"
-              (click)="setFilter('all')"
-            >
-              Todos
-            </button>
-            <button 
-              class="filter-btn" 
-              [class.active]="activeFilter() === 'saved'"
-              (click)="setFilter('saved')"
-            >
-              Guardados
-            </button>
-            <button 
-              class="filter-btn" 
-              [class.active]="activeFilter() === 'recent'"
-              (click)="setFilter('recent')"
-            >
-              Recientes
-            </button>
-          </div>
-        </div>
-        
-        <div class="sort-section">
-          <label for="sortOrder">Ordenar por:</label>
-          <select 
-            id="sortOrder" 
-            [(ngModel)]="sortOrder"
-            (change)="filterGallery()"
-          >
-            <option value="newest">Más recientes</option>
-            <option value="oldest">Más antiguos</option>
-            <option value="name">Nombre (A-Z)</option>
-          </select>
-        </div>
-      </div>
-      @if (isLoadingListImage()) {
-        <div class="processing-indicator">
-            <div class="spinner"></div>
-            <p>Cargando imágenes...</p>
-            <p class="processing-hint">Esto puede tardar unos milisegundos.</p>
-          </div>
-      }@else if (filteredArtworks().length === 0  ) {
-        <div class="no-results">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-          <p>No se encontraron resultados para tu búsqueda</p>
-          <app-button variant="secondary" (onClick)="resetFilters()">
-            Limpiar filtros
-          </app-button>
-        </div>
-      } @else {
-        <div class="gallery-grid">
-          @for (art of filteredArtworks(); track art.id) {
-            <app-card [clickable]="true" (click)="openPixelArtDetail(art)">
-              <div class="gallery-item">
-              <div class="gallery-image" [ngClass]="getAnimationClass(art)">
-                <img 
-                  [src]="art.thumbnailUrl | imageUrl" 
-                  [alt]="art.name || 'Pixel Art'"
-                  class="image-loading"
-                  (load)="onImageLoad($event)"
-                />
-              </div>
-                <div class="gallery-info">
-                  <h3 class="gallery-item-title">{{ art.name || 'Sin título' }}</h3>
-                  
-                  <div class="gallery-meta">
-                    <span class="creation-date">{{ formatDate(art.createdAt) }}</span>
-                    <span class="style-badge" [ngClass]="'style-' + art.style">
-                      {{ getStyleName(art.style) }}
-                    </span>
-                  </div>
-                  
-                  @if (art.tags && art.tags.length > 0) {
-                    <div class="gallery-tags">
-                      @for (tag of art.tags.slice(0, 3); track tag) {
-                        <span class="tag">{{ tag }}</span>
-                      }
-                      @if (art.tags.length > 3) {
-                        <span class="tag tag-more">+{{ art.tags.length - 3 }}</span>
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            </app-card>
-          }
-</div>
-      }
-      
-      <div class="gallery-pagination">
-        <app-button 
-          variant="secondary" 
-          [disabled]="currentPage() === 1"
-          (onClick)="previousPage()"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-          Anterior
-        </app-button>
-        
-        <span class="page-info">
-          Página {{ currentPage() }} de {{ totalPages() }}
-        </span>
-        
-        <app-button 
-          variant="secondary" 
-          [disabled]="currentPage() === totalPages()"
-          (onClick)="nextPage()"
-        >
-          Siguiente
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </app-button>
-      </div>
-    </div>
-     <!-- Modal para detalles del pixel art -->
-     <app-modal 
-      [isOpen]="isModalOpen()" 
-      [title]="'Detalle de Pixel Art'"
-      [showFooter]="false"
-      (close)="closeModal()"
-    >
-      <app-pixel-art-detail
-        [pixelArt]="selectedPixelArt"
-        (editPixelArt)="editPixelArt($event)"
-        (downloadPixelArt)="downloadPixelArt($event)"
-        (sharePixelArt)="sharePixelArt($event)"
-      ></app-pixel-art-detail>
-    </app-modal>
-  `,
+  templateUrl: './gallery.component.html',
   styleUrls: ['./gallery.component.scss']
 })
-export class GalleryComponent {
+export class GalleryComponent implements OnInit, OnDestroy {
+  // Servicios inyectados
   private mockDataService = inject(MockDataService);
   private pixelArtService = inject(PixelArtService);
   private router = inject(Router);
-
-  isLoadingListImage =this.pixelArtService.isLoadingListImages; 
   
-  // Signals for state
-  readonly allArtworks = signal<any[]>([]);
+  // Subject para gestionar suscripciones
+  private destroy$ = new Subject<void>();
+
+  // Estado de carga desde el servicio
+  isLoadingList = this.pixelArtService.isLoadingList;
+  
+  // Signals para el estado local
+  readonly allArtworks = signal<PixelArt[]>([]);
   readonly searchTerm = signal<string>('');
   readonly activeFilter = signal<'all' | 'saved' | 'recent'>('all');
   readonly sortOrder = signal<'newest' | 'oldest' | 'name'>('newest');
   readonly itemsPerPage = signal<number>(9);
   readonly currentPage = signal<number>(1);
 
-   // Signals para el modal
-   readonly isModalOpen = signal<boolean>(false);
-   readonly selectedPixelArt = signal<any | null>(null);
+  // Signals para el modal
+  readonly isModalOpen = signal<boolean>(false);
+  readonly selectedPixelArt = signal<PixelArt | null>(null);
   
-  // Computed signals
-  readonly filteredArtworks = computed(() => {
+  // Computed signals para datos derivados
+  readonly filteredArtworks = computed<PixelArt[]>(() => {
     let filtered = [...this.allArtworks()];
   
     // Aplicar el filtro de búsqueda
     if (this.searchTerm().trim()) {
       const term = this.searchTerm().toLowerCase();
       filtered = filtered.filter(art => 
-        art.name.toLowerCase().includes(term) || 
-        art.tags.some((tag: any) => tag.toLowerCase().includes(term))
+        (art.name?.toLowerCase().includes(term) || false) || 
+        this.tagsIncludeTerm(art.tags, term)
       );
     }
   
@@ -234,10 +90,10 @@ export class GalleryComponent {
     } else if (this.sortOrder() === 'oldest') {
       filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     } else if (this.sortOrder() === 'name') {
-      filtered.sort((a, b) => a.name.localeCompare(b.name));
+      filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
   
-    // Apply pagination
+    // Aplicar paginación
     const startIndex = (this.currentPage() - 1) * this.itemsPerPage();
     return filtered.slice(startIndex, startIndex + this.itemsPerPage());
   });
@@ -246,7 +102,7 @@ export class GalleryComponent {
     Math.max(1, Math.ceil(this.countTotalFilteredItems() / this.itemsPerPage()))
   );
   
-  // Helper computed for calculating total items before pagination
+  // Helper computed para calcular el total de items antes de la paginación
   private countTotalFilteredItems = computed(() => {
     let filtered = [...this.allArtworks()];
   
@@ -254,8 +110,8 @@ export class GalleryComponent {
     if (this.searchTerm().trim()) {
       const term = this.searchTerm().toLowerCase();
       filtered = filtered.filter(art => 
-        art.name.toLowerCase().includes(term) || 
-        art.tags.some((tag: any) => tag.toLowerCase().includes(term))
+        (art.name?.toLowerCase().includes(term) || false) || 
+        this.tagsIncludeTerm(art.tags, term)
       );
     }
   
@@ -271,136 +127,178 @@ export class GalleryComponent {
     return filtered.length;
   });
   
-  constructor() {
-    // Load data and initialize
-    // Cargar datos e inicializar
-    this.pixelArtService.getPixelArtList().subscribe(
-      () => {}, // Manejador de success vacío (ya se actualiza en el servicio)
-      (error) => {
-        console.error('Error al cargar la lista de pixel arts:', error);
-        // Asegurar que el loading se desactiva incluso en caso de error
-        this.isLoadingListImage.set(false);
-      }
-    );
+  /**
+   * Inicialización del componente
+   */
+  ngOnInit(): void {
+    // Cargar datos iniciales
+    this.loadPixelArts();
     
-    // Create an effect to update allArtworks when savedPixelArts changes
+    // Efecto para actualizar artworks cuando cambia savedPixelArts
     effect(() => {
-      console.log('📢 savedPixelArts cambió:', this.pixelArtService.savedPixelArts());
-      
       const arts = this.pixelArtService.savedPixelArts();
-      const load = this.pixelArtService.isLoadingListImages()
       if (arts && Array.isArray(arts)) {
-        console.log('hay', arts);
         this.allArtworks.set(arts);
-      }
-      if(load){
-        this.isLoadingListImage.set(load)
       }
     });
   }
 
-  // Nuevos métodos para el modal
-  openPixelArtDetail(artwork: any): void {
+  /**
+   * Limpieza al destruir el componente
+   */
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Carga la lista de pixel arts
+   */
+  private loadPixelArts(): void {
+    this.pixelArtService.getPixelArtList()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (arts) => {
+          this.allArtworks.set(arts);
+        },
+        error: (error) => {
+          console.error('Error al cargar la lista de pixel arts:', error);
+        }
+      });
+  }
+  
+  /**
+   * Comprueba si un array de tags incluye un término
+   */
+  private tagsIncludeTerm(tags: string[] | undefined, term: string): boolean {
+    if (!tags || !Array.isArray(tags)) return false;
+    return tags.some(tag => tag.toLowerCase().includes(term));
+  }
+
+  /**
+   * Abre el modal de detalles para un pixel art
+   */
+  openPixelArtDetail(artwork: PixelArt): void {
     this.selectedPixelArt.set(artwork);
     this.isModalOpen.set(true);
   }
   
+  /**
+   * Cierra el modal de detalles
+   */
   closeModal(): void {
     this.isModalOpen.set(false);
+    this.selectedPixelArt.set(null);
   }
 
+  /**
+   * Navega al editor para editar un pixel art
+   */
   editPixelArt(id: string): void {
     this.closeModal();
-    this.router.navigate(['/editor'], { queryParams: { art: id, mode: 'pixelArt' } });
-  }
-  // Agrega este método al componente GalleryComponent
-onImageLoad(event: Event): void {
-  const img = event.target as HTMLImageElement;
-  if (img) {
-    img.classList.add('loaded');
-  }
-}
-
-downloadPixelArt(imageUrl: string): void {
-  if (!imageUrl) {
-    console.error('URL de imagen indefinida');
-    return;
+    this.router.navigate(['/editor'], { 
+      queryParams: { art: id, mode: 'pixelArt' } 
+    });
   }
   
-  try {
-    // Método 1: Usando fetch para descargar la imagen correctamente
-    fetch(imageUrl)
-      .then(response => response.blob())
-      .then(blob => {
-        // Crear un objeto URL para el blob
-        const blobUrl = window.URL.createObjectURL(blob);
-        
-        // Crear un elemento <a> temporal
-        const downloadLink = document.createElement('a');
-        downloadLink.href = blobUrl;
-        
-        // Establecer el nombre del archivo para la descarga
-        const fileName = `pixel-art-${Date.now()}.png`;
-        downloadLink.download = fileName;
-        
-        // Agregar el enlace al documento, hacer clic y luego eliminarlo
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        
-        // Limpieza
-        document.body.removeChild(downloadLink);
-        window.URL.revokeObjectURL(blobUrl); // Liberar memoria
-        
-        console.log(`Descargando imagen como ${fileName}`);
-      })
-      .catch(error => {
-        console.error('Error al descargar la imagen:', error);
-      });
-  } catch (error) {
-    console.error('Error en proceso de descarga:', error);
+  /**
+   * Maneja el evento de carga de imágenes
+   */
+  onImageLoad(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.classList.add('loaded');
+    }
   }
-}
 
-  sharePixelArt(id: string): void {
-    // Aquí podrías implementar lógica para compartir
-    // Por ejemplo, mostrar otro modal con opciones de compartir
-    console.log('Compartir pixel art con ID:', id);
+  /**
+   * Descarga un pixel art
+   */
+  downloadPixelArt(imageUrl: string): void {
+    if (!imageUrl) {
+      console.error('URL de imagen indefinida');
+      return;
+    }
     
-    // Para una implementación simple, podemos copiar un enlace al portapapeles
+    try {
+      fetch(imageUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          // Crear URL para el blob
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // Crear enlace de descarga
+          const downloadLink = document.createElement('a');
+          downloadLink.href = blobUrl;
+          downloadLink.download = `pixel-art-${Date.now()}.png`;
+          
+          // Simular clic y limpiar
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          window.URL.revokeObjectURL(blobUrl);
+          
+          console.log(`Descargando imagen como ${downloadLink.download}`);
+        })
+        .catch(error => {
+          console.error('Error al descargar la imagen:', error);
+        });
+    } catch (error) {
+      console.error('Error en proceso de descarga:', error);
+    }
+  }
+
+  /**
+   * Comparte un pixel art
+   */
+  sharePixelArt(id: string): void {
     const shareUrl = `${window.location.origin}/view/${id}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        // Aquí podrías mostrar una notificación de éxito
         console.log('Enlace copiado al portapapeles:', shareUrl);
+        // Aquí podríamos mostrar una notificación de éxito
       })
       .catch(err => {
         console.error('Error al copiar al portapapeles:', err);
       });
   }
   
-  // Métodos para interactuar con el estado
+  /**
+   * Establece el filtro activo
+   */
   setFilter(filter: 'all' | 'saved' | 'recent'): void {
     this.activeFilter.set(filter);
-    this.currentPage.set(1); // Reset to first page when filter changes
+    this.currentPage.set(1); // Volver a la primera página al cambiar el filtro
   }
   
+  /**
+   * Aplica filtros y reinicia la paginación
+   */
   filterGallery(): void {
-    // Just update the page - all filtering happens in computed signals
     this.currentPage.set(1);
   }
   
+  /**
+   * Avanza a la siguiente página
+   */
   nextPage(): void {
     if (this.currentPage() < this.totalPages()) {
       this.currentPage.update(page => page + 1);
     }
   }
   
+  /**
+   * Retrocede a la página anterior
+   */
   previousPage(): void {
     if (this.currentPage() > 1) {
       this.currentPage.update(page => page - 1);
     }
   }
   
+  /**
+   * Resetea todos los filtros
+   */
   resetFilters(): void {
     this.searchTerm.set('');
     this.activeFilter.set('all');
@@ -408,6 +306,9 @@ downloadPixelArt(imageUrl: string): void {
     this.currentPage.set(1);
   }
   
+  /**
+   * Formatea una fecha para mostrar
+   */
   formatDate(date: Date | string | undefined): string {
     if (!date) return 'Fecha desconocida';
     
@@ -415,8 +316,7 @@ downloadPixelArt(imageUrl: string): void {
       const dateObj = new Date(date);
       
       // En dispositivos móviles, usar formato más compacto
-      if (window.innerWidth <= 576) { // Ancho de mobile en tus variables
-        // Formato: "4 mar" (día y mes abreviado)
+      if (window.innerWidth <= 576) {
         return dateObj.toLocaleDateString('es-ES', {
           day: 'numeric',
           month: 'short'
@@ -435,24 +335,18 @@ downloadPixelArt(imageUrl: string): void {
     }
   }
   
+  /**
+   * Obtiene el nombre del estilo para mostrar
+   */
   getStyleName(style: string): string {
-    switch (style) {
-      case 'retro':
-        return 'Retro 8-bit';
-      case 'modern':
-        return 'Moderno 16-bit';
-      case 'minimalist':
-        return 'Minimalista';
-      case 'dithered':
-        return 'Dithering';
-      case 'isometric':
-        return 'Isométrico';
-      default:
-        return 'Estándar';
-    }
+    // Usar el método optimizado para evitar recálculos
+    return this.getStyleNameOptimized(style);
   }
   
-  getAnimationClass(art: any): string {
+  /**
+   * Obtiene la clase CSS para animaciones
+   */
+  getAnimationClass(art: PixelArt): string {
     if (art.isAnimated) {
       switch (art.animationType) {
         case 'breathing':
@@ -468,71 +362,63 @@ downloadPixelArt(imageUrl: string): void {
     return '';
   }
   
-  openArtwork(id: string): void {
-    // this.router.navigate(['/editor'], { queryParams: { art: id } });
+  /**
+   * Cierra el modal al hacer clic en el backdrop
+   */
+  closeOnBackdrop(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.closeModal();
+    }
   }
 
-  // Asegúrate de que estos métodos estén implementados en tu clase GalleryComponent
-
-
-
-
-
-
-
-// Si implementaste el modal directamente en el componente
-closeOnBackdrop(event: MouseEvent): void {
-  if (event.target === event.currentTarget) {
-    this.closeModal();
-  }
-}
-
-// Optimización para prevenir recálculos en cada renderizado
-getStyleNameOptimized(style: string | undefined): string {
-  if (!style) return 'Estándar';
-  
-  // Usar un mapa para evitar múltiples condiciones switch
-  const styleMap: Record<string, string> = {
-    'retro': 'Retro 8-bit',
-    'RETRO_8BIT': 'Retro 8-bit',
-    'modern': 'Moderno 16-bit',
-    'MODERN_16BIT': 'Moderno 16-bit',
-    'minimalist': 'Minimalista',
-    'MINIMALIST': 'Minimalista',
-    'dithered': 'Dithering',
-    'DITHERED': 'Dithering',
-    'isometric': 'Isométrico',
-    'ISOMETRIC': 'Isométrico'
-  };
-  
-  return styleMap[style] || 'Estándar';
-}
-
-// Mejora para mostrar nombre abreviado del estilo en móviles
-getStyleNameMobile(style: string | undefined): string {
-  if (!style) return 'Std';
-  
-  // Si estamos en móvil, devolvemos nombres abreviados
-  if (window.innerWidth <= 576) {
-    const mobileStyleMap: Record<string, string> = {
-      'retro': 'Retro',
-      'RETRO_8BIT': 'Retro',
-      'modern': 'Modern',
-      'MODERN_16BIT': 'Modern',
-      'minimalist': 'Minim',
-      'MINIMALIST': 'Minim',
-      'dithered': 'Dither',
-      'DITHERED': 'Dither',
-      'isometric': 'Iso',
-      'ISOMETRIC': 'Iso'
+  /**
+   * Versión optimizada de getStyleName
+   */
+  getStyleNameOptimized(style: string | undefined): string {
+    if (!style) return 'Estándar';
+    
+    // Usar un mapa para evitar múltiples condiciones switch
+    const styleMap: Record<string, string> = {
+      'retro': 'Retro 8-bit',
+      'RETRO_8BIT': 'Retro 8-bit',
+      'modern': 'Moderno 16-bit',
+      'MODERN_16BIT': 'Moderno 16-bit',
+      'minimalist': 'Minimalista',
+      'MINIMALIST': 'Minimalista',
+      'dithered': 'Dithering',
+      'DITHERED': 'Dithering',
+      'isometric': 'Isométrico',
+      'ISOMETRIC': 'Isométrico'
     };
     
-    return mobileStyleMap[style] || 'Std';
+    return styleMap[style] || 'Estándar';
   }
-  
-  // En otros dispositivos, usar el método normal
-  return this.getStyleName(style);
-}
 
-
+  /**
+   * Versión móvil del nombre de estilo
+   */
+  getStyleNameMobile(style: string | undefined): string {
+    if (!style) return 'Std';
+    
+    // Si estamos en móvil, devolvemos nombres abreviados
+    if (window.innerWidth <= 576) {
+      const mobileStyleMap: Record<string, string> = {
+        'retro': 'Retro',
+        'RETRO_8BIT': 'Retro',
+        'modern': 'Modern',
+        'MODERN_16BIT': 'Modern',
+        'minimalist': 'Minim',
+        'MINIMALIST': 'Minim',
+        'dithered': 'Dither',
+        'DITHERED': 'Dither',
+        'isometric': 'Iso',
+        'ISOMETRIC': 'Iso'
+      };
+      
+      return mobileStyleMap[style] || 'Std';
+    }
+    
+    // En otros dispositivos, usar el método normal
+    return this.getStyleName(style);
+  }
 }

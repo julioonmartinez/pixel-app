@@ -1,3 +1,4 @@
+// src/app/features/editor/editor.component.scss
 @import '../../styles/variables';
 @import '../../styles/mixins';
 
@@ -86,6 +87,11 @@
   @include responsive(desktop-up) {
     grid-template-columns: 350px 1fr;
   }
+}
+.editor-layout.pixelArtNoResult{
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
 }
 
 

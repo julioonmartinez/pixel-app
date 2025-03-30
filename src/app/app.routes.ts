@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { ViewComponent } from './features/view/view.component';
 
 export const routes: Routes = [
     {
@@ -13,14 +14,7 @@ export const routes: Routes = [
         path: 'gallery',
         loadComponent: () => import('./features/gallery/gallery.component').then(m => m.GalleryComponent)
       },
-    //   {
-    //     path: 'tutorials',
-    //     loadComponent: () => import('./features/tutorials/tutorials.component').then(m => m.TutorialsComponent)
-    //   },
-    //   {
-    //     path: 'community',
-    //     loadComponent: () => import('./features/community/community.component').then(m => m.CommunityComponent)
-    //   },
+      { path: 'view/:id', component: ViewComponent },
       {
         path: '**',
         redirectTo: ''

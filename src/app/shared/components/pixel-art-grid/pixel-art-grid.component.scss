@@ -1,0 +1,367 @@
+// src/app/shared/components/pixel-art-grid/pixel-art-grid.component.scss
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.pixel-art-grid-container {
+  width: 100%;
+}
+
+.view-mode-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: $spacing-md;
+  gap: $spacing-xs;
+  
+  @include responsive(mobile-only) {
+    padding: 0 $spacing-sm;
+  }
+}
+
+.view-mode-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: $text-secondary;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-md;
+  cursor: pointer;
+  transition: all $transition-normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  &.active {
+    background: rgba($purple-primary, 0.2);
+    color: $purple-light;
+    border-color: rgba($purple-light, 0.3);
+  }
+
+  @include touch-target; // Aplicar el mixin para área táctil
+}
+
+// Vista de cuadrícula (grid)
+.pixel-art-container.grid-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  
+  @include responsive(mobile-only) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-sm;
+  }
+  
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: $spacing-md;
+  }
+  
+  @include responsive(desktop-up) {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: $spacing-lg;
+  }
+}
+
+.artwork-grid-item {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.artwork-image {
+  aspect-ratio: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: $border-radius-md;
+  margin-bottom: $spacing-md;
+  will-change: transform;
+  backface-visibility: hidden;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  
+  @include responsive(mobile-only) {
+    aspect-ratio: 1/0.9;
+  }
+}
+
+// Vista de lista (list)
+.pixel-art-container.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.artwork-list-item {
+  display: flex;
+  gap: $spacing-md;
+  width: 100%;
+  
+  @include responsive(mobile-only) {
+    gap: $spacing-sm;
+  }
+}
+
+.artwork-list-image {
+  min-width: 120px;
+  width: 120px;
+  height: 120px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: $border-radius-md;
+  will-change: transform;
+  backface-visibility: hidden;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  
+  @include responsive(mobile-only) {
+    min-width: 80px;
+    width: 80px;
+    height: 80px;
+  }
+}
+
+.artwork-list-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.artwork-details {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+// Elementos comunes
+.artwork-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.artwork-title {
+  font-size: 1.1rem;
+  margin-bottom: $spacing-xs;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  @include responsive(mobile-only) {
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+  }
+}
+
+.artwork-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+  
+  .creation-date {
+    font-size: 0.8rem;
+    color: $text-secondary;
+    
+    @include responsive(mobile-only) {
+      font-size: 0.7rem;
+    }
+  }
+  
+  .style-badge {
+    font-size: 0.8rem;
+    padding: 2px $spacing-sm;
+    border-radius: $border-radius-sm;
+    
+    @include responsive(mobile-only) {
+      font-size: 0.7rem;
+      padding: 1px $spacing-xs;
+    }
+    
+    &.style-retro {
+      background: rgba(255, 165, 0, 0.2);
+      color: orange;
+    }
+    
+    &.style-modern {
+      background: rgba(0, 191, 255, 0.2);
+      color: deepskyblue;
+    }
+    
+    &.style-minimalist {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    
+    &.style-dithered {
+      background: rgba(147, 112, 219, 0.2);
+      color: mediumpurple;
+    }
+    
+    &.style-isometric {
+      background: rgba(50, 205, 50, 0.2);
+      color: limegreen;
+    }
+  }
+}
+
+.artwork-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: auto;
+  padding-top: $spacing-xs;
+  
+  @include responsive(mobile-only) {
+    padding-top: 2px;
+  }
+  
+  .tag {
+    background: rgba($purple-primary, 0.2);
+    color: $purple-light;
+    padding: 2px $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: 0.8rem;
+    
+    @include responsive(mobile-only) {
+      padding: 1px $spacing-xs;
+      font-size: 0.7rem;
+    }
+  }
+  
+  .tag-more {
+    background: rgba($text-secondary, 0.2);
+    color: $text-secondary;
+  }
+}
+
+.image-loading {
+  opacity: 0;
+  transition: opacity 0.3s ease-in;
+  
+  &.loaded {
+    opacity: 1;
+  }
+}
+
+// Animaciones
+.animation-breathing {
+  animation: breathing 4s ease-in-out infinite;
+}
+
+.animation-flickering {
+  animation: flickering 2s ease-in-out infinite;
+}
+
+.animation-floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes breathing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes flickering {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+// Estados de carga e indicadores
+.processing-indicator {
+  text-align: center;
+  padding: $spacing-lg;
+  
+  .spinner {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto $spacing-md;
+    border: 4px solid rgba($purple-light, 0.3);
+    border-radius: 50%;
+    border-top-color: $purple-light;
+    animation: spin 1s linear infinite;
+  }
+  
+  p {
+    color: $purple-light;
+    margin-bottom: $spacing-xs;
+  }
+  
+  .processing-hint {
+    color: $text-secondary;
+    font-size: 0.9rem;
+  }
+}
+
+.no-results {
+  text-align: center;
+  padding: $spacing-xxl 0;
+  
+  svg {
+    margin-bottom: $spacing-md;
+    opacity: 0.5;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Optimizaciones para prefers-reduced-motion
+@media (prefers-reduced-motion: reduce) {
+  .animation-breathing,
+  .animation-flickering,
+  .animation-floating {
+    animation: none !important;
+  }
+  
+  .image-loading {
+    transition: none !important;
+  }
+  
+  .spinner {
+    animation-duration: 10s !important;
+  }
+}

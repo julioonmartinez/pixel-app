@@ -1,0 +1,276 @@
+<!-- src/app/features/editor/editor.component.html -->
+<div class="editor-container">
+  <!-- Título del editor -->
+  <h1 class="editor-title">
+    {{ isUpdateImage() ? 'Edita tu Pixel Art' : 'Editor de Pixel Art' }}
+  </h1>
+  
+  <!-- Subtítulo con nombre de la imagen (si existe) -->
+  @if (isUpdateImage() && resultPixelArt()) {
+    <h3>{{ resultPixelArt()?.name }}</h3>
+  }
+  
+  <!-- Tabs de navegación -->
+  <div class="editor-tabs">
+    <!-- Tab Pixel Art -->
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab() === 'pixelArt'"
+      (click)="setActiveTab('pixelArt')"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <rect x="7" y="7" width="4" height="4" stroke="currentColor"></rect>
+        <rect x="13" y="7" width="4" height="4" stroke="currentColor"></rect>
+        <rect x="7" y="13" width="4" height="4" stroke="currentColor"></rect>
+        <rect x="13" y="13" width="4" height="4" stroke="currentColor"></rect>
+      </svg>
+      Editar Pixel-Art
+    </button>
+    
+    <!-- Tab Upload -->
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab() === 'upload'"
+      (click)="setActiveTab('upload')"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
+      </svg>
+      Desde Imagen
+    </button>
+    
+    <!-- Tab Prompt -->
+    <button 
+      class="tab-button"
+      [class.active]="activeTab() === 'prompt'"
+      (click)="setActiveTab('prompt')"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+      </svg>
+      Desde Texto
+    </button>
+  </div>
+  
+  <!-- Layout principal del editor -->
+  <div class="editor-layout" [class.pixelArtNoResult]="activeTab() === 'pixelArt' && !resultPixelArt()">
+    <!-- Panel izquierdo (inputs) -->
+    <div class="editor-input">
+      @switch (activeTab()) {
+        @case ('upload') {
+          <app-card>
+            <app-image-upload (imageSelected)="onImageSelected($event)" />
+          </app-card>
+          <app-card>
+            <app-style-options />
+          </app-card>
+          <app-card>
+            <app-background-options />
+          </app-card>
+        }
+        @case ('prompt') {
+          <app-card>
+            <app-text-prompt 
+              (promptSubmitted)="onPromptAction($event)" 
+              (promptUpdate)="onPromptAction($event)"
+              [editMode]="isEditMode()" 
+              [pixelArt]="resultPixelArt()" 
+            />
+          </app-card>
+          <app-card>
+            <app-style-options />
+          </app-card>
+          <app-card>
+            <app-background-options />
+          </app-card>
+        }
+        @case ('pixelArt') {
+          @if (!resultPixelArt()) {
+            @if (pixelArts() != null) {
+              <app-pixel-art-grid
+                [artworks]="pixelArts()!"
+                [isLoading]="isLoading()"
+                [defaultMode]="'grid'"
+                (artworkSelect)="onArtworkSelect($event)"
+              />
+            } @else {
+             <!-- No hay pixel arts disponibles -->
+            }
+          } @else {
+            <app-card>
+              <app-text-prompt
+                (promptSubmitted)="onPromptAction($event)" 
+                (promptUpdate)="onPromptAction($event)"
+                [editMode]="true" 
+                [pixelArt]="resultPixelArt()" 
+              />
+            </app-card>
+            <app-card>
+              <app-style-options />
+            </app-card>
+            <app-card>
+              <app-background-options />
+            </app-card>
+          }
+        }
+      }
+    </div>
+    
+    <!-- Panel de previsualización (derecho) -->
+    @if (shouldShowPreview()) {
+      <div class="editor-preview">
+        <app-card>
+          <app-preview />
+        </app-card>
+        
+        <!-- Historial de versiones (solo en el contexto apropiado) -->
+        @if (activeVersionHistory()) {
+          <app-version-history [pixelArt]="activeVersionHistory()!" />
+        }
+        
+        <!-- Acciones de la previsualización -->
+        <div class="preview-actions">
+          <app-button 
+            variant="secondary"
+            [disabled]="!hasResultImage()"
+            (onClick)="downloadImage()"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Descargar
+          </app-button>
+          
+          <app-button 
+            variant="secondary"
+            [disabled]="!hasResultImage()"
+            (onClick)="showShareDialog()"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Compartir
+          </app-button>
+          
+          <app-button
+            [disabled]="!hasResultImage() || isProcessing()"
+            (onClick)="showSaveDialog()"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Guardar
+          </app-button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Diálogo para guardar pixel art -->
+@if (showSaveDialogFlag()) {
+  <app-dialog
+    title="Guardar Pixel Art"
+    (close)="closeSaveDialog()"
+  >
+    <div class="save-dialog-content">
+      <div class="form-group">
+        <label for="artName">Nombre</label>
+        <input 
+          type="text" 
+          id="artName" 
+          [(ngModel)]="saveArtName"
+          placeholder="Mi pixel art"
+          class="form-input"
+          autocomplete="off"
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="artTags">Etiquetas (separadas por comas)</label>
+        <input 
+          type="text" 
+          id="artTags" 
+          [(ngModel)]="saveArtTags"
+          placeholder="pixel, retro, game"
+          class="form-input"
+          autocomplete="off"
+        >
+      </div>
+      
+      <div class="dialog-actions">
+        <app-button 
+          variant="secondary"
+          (onClick)="closeSaveDialog()"
+        >
+          Cancelar
+        </app-button>
+        <app-button
+          (onClick)="savePixelArt()"
+        >
+          Guardar
+        </app-button>
+      </div>
+    </div>
+  </app-dialog>
+}
+
+<!-- Diálogo para compartir pixel art -->
+@if (showShareDialogFlag()) {
+  <app-dialog
+    title="Compartir Pixel Art"
+    (close)="closeShareDialog()"
+  >
+    <div class="share-dialog-content">
+      <p>Comparte tu pixel art con otros:</p>
+      
+      <div class="share-preview">
+        <img [src]="resultImage()" alt="Pixel Art para compartir" />
+      </div>
+      
+      <div class="form-group">
+        <label for="shareUrl">Enlace directo</label>
+        <div class="share-url-container">
+          <input 
+            type="text" 
+            id="shareUrl" 
+            [value]="shareUrl"
+            readonly
+            class="form-input"
+            #shareUrlInput
+          >
+          <app-button
+            variant="secondary"
+            (onClick)="copyShareUrl()"
+          >
+            Copiar
+          </app-button>
+        </div>
+        @if (copySuccess()) {
+          <span class="copy-success">¡Enlace copiado!</span>
+        }
+      </div>
+      
+      <div class="social-buttons">
+        <button class="social-button twitter" (click)="shareToSocial('twitter')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+          </svg>
+          Twitter
+        </button>
+        <button class="social-button facebook" (click)="shareToSocial('facebook')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+          </svg>
+          Facebook
+        </button>
+      </div>
+    </div>
+  </app-dialog>
+}

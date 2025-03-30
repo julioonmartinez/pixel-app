@@ -1,0 +1,190 @@
+<!-- src/app/features/view/view.component.html -->
+<div class="view-container">
+    <!-- Barra superior -->
+    <div class="view-header">
+      <app-button variant="secondary" (onClick)="navigateToGallery()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Volver a Galería
+      </app-button>
+    </div>
+  
+    <!-- Estado de carga -->
+    @if (isLoading()) {
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Cargando Pixel Art...</p>
+      </div>
+    } 
+    
+    <!-- Error -->
+    @else if (error()) {
+      <div class="error-container">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <h3>Error</h3>
+        <p>{{ error() }}</p>
+        <app-button variant="primary" (onClick)="navigateToGallery()">
+          Volver a Galería
+        </app-button>
+      </div>
+    } 
+    
+    <!-- Contenido del Pixel Art -->
+    @else if (pixelArt()) {
+      <div class="pixel-art-view">
+        <app-card>
+          <div class="pixel-art-container">
+            <!-- Previsualización de la imagen -->
+            <div class="image-container">
+              <img 
+                [src]="pixelArt()!.imageUrl | imageUrl" 
+                [alt]="pixelArt()!.name" 
+                class="main-image" 
+              />
+            </div>
+            
+            <!-- Información y acciones -->
+            <div class="info-container">
+              <h1 class="pixel-art-title">{{ pixelArt()!.name }}</h1>
+              
+              <!-- Metadatos -->
+              <div class="metadata-grid">
+                <div class="metadata-item">
+                  <span class="metadata-label">Creado</span>
+                  <span class="metadata-value">{{ formatDate(pixelArt()!.createdAt) }}</span>
+                </div>
+                
+                <div class="metadata-item">
+                  <span class="metadata-label">Dimensiones</span>
+                  <span class="metadata-value">{{ pixelArt()!.width }}x{{ pixelArt()!.height }} px</span>
+                </div>
+                
+                <div class="metadata-item">
+                  <span class="metadata-label">Estilo</span>
+                  <span class="metadata-value">{{ getStyleName(pixelArt()!.style) }}</span>
+                </div>
+                
+                <div class="metadata-item">
+                  <span class="metadata-label">Tamaño de píxel</span>
+                  <span class="metadata-value">{{ pixelArt()!.pixelSize }}px</span>
+                </div>
+              </div>
+              
+              <!-- Etiquetas -->
+              @if (pixelArt()!.tags && pixelArt()!.tags.length > 0) {
+                <div class="tags-section">
+                  <h3 class="section-title">Etiquetas</h3>
+                  <div class="tags-container">
+                    @for (tag of pixelArt()!.tags; track tag) {
+                      <span class="tag">{{ tag }}</span>
+                    }
+                  </div>
+                </div>
+              }
+              
+              <!-- Prompt utilizado (si existe) -->
+              @if (pixelArt()!.prompt) {
+                <div class="prompt-section">
+                  <h3 class="section-title">Prompt</h3>
+                  <div class="prompt-container">
+                    <p>{{ pixelArt()!.prompt }}</p>
+                  </div>
+                </div>
+              }
+              
+              <!-- Acciones principales -->
+              <div class="actions-container">
+                <app-button variant="primary" (onClick)="editPixelArt()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Editar
+                </app-button>
+                
+                <app-button variant="secondary" (onClick)="downloadImage()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Descargar
+                </app-button>
+                
+                <div class="dropdown-container">
+                  <app-button variant="secondary" (onClick)="copyShareUrl()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="18" cy="5" r="3"></circle>
+                      <circle cx="6" cy="12" r="3"></circle>
+                      <circle cx="18" cy="19" r="3"></circle>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    Compartir
+                  </app-button>
+                  
+                  <div class="share-menu">
+                    <button class="social-button twitter" (click)="shareToSocial('twitter')">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                      </svg>
+                      Twitter
+                    </button>
+                    <button class="social-button facebook" (click)="shareToSocial('facebook')">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                      </svg>
+                      Facebook
+                    </button>
+                  </div>
+                  
+                  @if (copySuccess()) {
+                    <div class="copy-success">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      ¡Enlace copiado!
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </app-card>
+        
+        <!-- Historial de versiones -->
+        @if (hasVersionHistory()) {
+          <div class="version-history-section">
+            <div class="version-header">
+              <h2 class="section-title">Historial de Versiones</h2>
+              <app-button variant="secondary" (onClick)="toggleVersionHistory()">
+                @if (showVersions()) {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Ocultar
+                } @else {
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Mostrar
+                }
+              </app-button>
+            </div>
+            
+            @if (showVersions()) {
+              <app-card>
+                <app-version-history [pixelArt]="pixelArt()!" />
+              </app-card>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>

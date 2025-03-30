@@ -1,0 +1,267 @@
+// src/app/features/view/view.component.scss
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.view-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: $spacing-lg;
+  
+  @include responsive(mobile-only) {
+    padding: $spacing-md $spacing-sm;
+  }
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.loading-container, .error-container {
+  @include flex-center;
+  flex-direction: column;
+  min-height: 400px;
+  text-align: center;
+  
+  h3 {
+    margin: $spacing-md 0;
+    color: $text-primary;
+    font-size: 1.5rem;
+  }
+  
+  p {
+    color: $text-secondary;
+    margin-bottom: $spacing-lg;
+    max-width: 600px;
+  }
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba($purple-light, 0.2);
+    border-radius: 50%;
+    border-top-color: $purple-light;
+    animation: spin 1s linear infinite;
+    margin-bottom: $spacing-md;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+.error-container svg {
+  margin-bottom: $spacing-md;
+}
+
+.pixel-art-view {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.pixel-art-container {
+  display: flex;
+  flex-direction: column;
+  
+  @include responsive(tablet-up) {
+    flex-direction: row;
+    gap: $spacing-xl;
+  }
+}
+
+.image-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-lg;
+  
+  @include responsive(tablet-up) {
+    margin-bottom: 0;
+    max-width: 50%;
+  }
+}
+
+.main-image {
+  max-width: 100%;
+  max-height: 400px;
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+.info-container {
+  flex: 1;
+}
+
+.pixel-art-title {
+  font-size: 2rem;
+  margin-bottom: $spacing-md;
+  color: $text-primary;
+  @include gradient-text;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+  
+  @include responsive(tablet-up) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.metadata-item {
+  .metadata-label {
+    display: block;
+    color: $text-secondary;
+    font-size: 0.9rem;
+    margin-bottom: $spacing-xs;
+  }
+  
+  .metadata-value {
+    color: $text-primary;
+    font-weight: 500;
+  }
+}
+
+.section-title {
+  font-size: 1.2rem;
+  margin-bottom: $spacing-sm;
+  color: $text-primary;
+}
+
+.tags-section, .prompt-section {
+  margin-bottom: $spacing-lg;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.tag {
+  background: rgba($purple-primary, 0.2);
+  color: $purple-light;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-sm;
+  font-size: 0.8rem;
+}
+
+.prompt-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  color: $text-secondary;
+  font-style: italic;
+}
+
+.actions-container {
+  display: flex;
+  gap: $spacing-md;
+  
+  @include responsive(mobile-only) {
+    flex-direction: column;
+  }
+}
+
+.dropdown-container {
+  position: relative;
+  
+  .share-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: $card-bg;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-lg;
+    padding: $spacing-sm;
+    margin-top: $spacing-xs;
+    z-index: 10;
+    display: none;
+    
+    &:hover, &:focus-within, .dropdown-container:focus-within & {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+  }
+  
+  .social-button {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
+    border: none;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    transition: background-color $transition-normal;
+    color: white;
+    width: 100%;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    &.twitter {
+      background-color: #1DA1F2;
+      &:hover { background-color: darken(#1DA1F2, 10%); }
+    }
+    
+    &.facebook {
+      background-color: #4267B2;
+      &:hover { background-color: darken(#4267B2, 10%); }
+    }
+  }
+  
+  .copy-success {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: rgba($green-success, 0.2);
+    color: $green-success;
+    border-radius: $border-radius-sm;
+    padding: $spacing-xs $spacing-sm;
+    margin-top: $spacing-xs;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+}
+
+.version-history-section {
+  .version-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-md;
+  }
+}
+
+// Responsive behaviors
+@media (hover: hover) {
+  // Solo permitir efectos hover en dispositivos que lo soportan
+  .dropdown-container app-button:hover + .share-menu,
+  .share-menu:hover {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+}
+
+// Para dispositivos táctiles, mostrar menú de compartir al tocar el botón
+@media (hover: none) {
+  .dropdown-container app-button:active + .share-menu {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+}

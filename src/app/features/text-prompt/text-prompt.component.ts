@@ -74,7 +74,10 @@ import { PixelArt } from '../../core/models/pixel-art.model';
   styleUrls: ['./text-prompt.component.scss']
 })
 export class TextPromptComponent {
+  // En TextPromptComponent
+@Output() promptUpdate = new EventEmitter<{id: string, prompt: string}>();
   @Output() promptSubmitted = new EventEmitter<string>();
+  
   @Input() set pixelArt(value: PixelArt | null) {
     if (value) {
       this._pixelArt.set(value);
@@ -126,6 +129,18 @@ export class TextPromptComponent {
       return "Describe lo que quieres generar... p. ej. 'Un dragón rojo volando sobre un castillo medieval al atardecer'";
     }
   }
+  private getValidPixelArt(): PixelArt | null {
+    // Intentar obtener el pixelArt desde la propiedad local
+    let art = this._pixelArt();
+    
+    // Si no tenemos pixelArt local pero estamos en modo edición, 
+    // puede ser que aún no se haya propagado la entrada
+    if (!art && this.editMode()) {
+      console.warn('No hay pixelArt disponible pero estamos en modo edición');
+    }
+    
+    return art;
+  }
   
   updatePrompt(text: string): void {
     this.promptText.set(text);
@@ -141,20 +156,24 @@ export class TextPromptComponent {
     return this.promptText().trim().length >= 5 && this.promptText().length <= 300;
   }
   
+  // En el método submitPrompt()
   submitPrompt(): void {
-
+    console.log(this.promptText())
     if (this.isValidPrompt()) {
-      console.log('editMode', this.editMode())
       if (this.editMode()) {
-        // Si estamos en modo edición, actualizamos la imagen existente
-        console.log('modo edición')
-        const pixelArt = this._pixelArt();
-        if (pixelArt) {
-          console.log('pixelArt', pixelArt)
-          this.pixelArtService.updatePixelArtWithPrompt(pixelArt.id, this.promptText())?.subscribe() ;
+        const pixelArt = this.getValidPixelArt();
+        if (pixelArt && pixelArt.id) {
+          console.log('Emitiendo promptUpdate con ID:', pixelArt.id);
+          this.promptUpdate.emit({
+            id: pixelArt.id,
+            prompt: this.promptText()
+          });
+        } else {
+          // Fallback para cuando estamos en modo edición pero no tenemos pixelArt
+          console.warn('En modo edición pero sin pixelArt válido, emitiendo sólo el prompt');
+          this.promptSubmitted.emit(this.promptText());
         }
       } else {
-        // Si estamos en modo generación, generamos una nueva imagen
         this.promptSubmitted.emit(this.promptText());
       }
     }
