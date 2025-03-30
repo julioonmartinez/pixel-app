@@ -305,6 +305,7 @@ export class EditorComponent {
       this.pixelArtService.resultImage.set(null);
     }
     
+    
   }
   
   onImageSelected(data: {image: string, prompt?: string}): void {
