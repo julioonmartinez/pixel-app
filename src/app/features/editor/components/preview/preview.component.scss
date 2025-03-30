@@ -49,17 +49,17 @@
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   
-  &.pixel-size-8 {
-    image-rendering: pixelated;
-  }
+  // &.pixel-size-8 {
+  //   image-rendering: pixelated;
+  // }
   
-  &.pixel-size-4 {
-    image-rendering: pixelated;
-  }
+  // &.pixel-size-4 {
+  //   image-rendering: pixelated;
+  // }
   
-  &.pixel-size-2 {
-    image-rendering: auto;
-  }
+  // &.pixel-size-2 {
+  //   image-rendering: auto;
+  // }
 }
 
 .placeholder {

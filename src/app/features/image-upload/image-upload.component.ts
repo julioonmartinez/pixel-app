@@ -6,11 +6,12 @@ import { FileSizePipe } from '../../shared/pipes/file-size.pipe';
 import { signal, computed } from '@angular/core';
 import { PixelArtService } from '../../core/services/pixel-art.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-image-upload',
   standalone: true,
-  imports: [CommonModule, DragDropDirective, ButtonComponent, FileSizePipe],
+  imports: [CommonModule, FormsModule, DragDropDirective, ButtonComponent, FileSizePipe],
   template: `
     <div class="upload-container">
       <div 
@@ -75,6 +76,20 @@ import { CommonModule } from '@angular/common';
         </div>
       }
       
+      <!-- Campo de prompt adicional para guiar el procesamiento -->
+      @if (selectedFile() && !isProcessing()) {
+        <div class="prompt-container">
+          <label for="additionalPrompt" class="prompt-label">Prompt adicional (opcional):</label>
+          <textarea
+            id="additionalPrompt"
+            class="prompt-input"
+            placeholder="Describe ajustes adicionales para la imagen... p. ej. 'Estilo más pixelado, colores vibrantes'"
+            [(ngModel)]="additionalPrompt"
+            rows="3"
+          ></textarea>
+        </div>
+      }
+      
       <div class="upload-actions">
         <app-button 
           [disabled]="!selectedFile() || isProcessing()"
@@ -92,16 +107,17 @@ import { CommonModule } from '@angular/common';
       </div>
     </div>
   `,
-  styleUrl: './image-upload.component.scss'
+  styleUrls: ['./image-upload.component.scss']
 })
 export class ImageUploadComponent {
-  @Output() imageSelected = new EventEmitter<string>();
+  @Output() imageSelected = new EventEmitter<{image: string, prompt?: string}>();
   
   private pixelArtService = inject(PixelArtService);
   
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
+  additionalPrompt = signal<string>('');
 
   // En Angular 19, podemos usar directamente los signals del servicio
   isProcessing = this.pixelArtService.isProcessing;
@@ -160,11 +176,16 @@ export class ImageUploadComponent {
     this.selectedFile.set(null);
     this.previewUrl.set(null);
     this.errorMessage.set(null);
+    this.additionalPrompt.set('');
   }
   
   processImage(): void {
     if (this.previewUrl()) {
-      this.imageSelected.emit(this.previewUrl()!);
+      // Pasamos la imagen y el prompt opcional
+      this.imageSelected.emit({
+        image: this.previewUrl()!,
+        prompt: this.additionalPrompt().trim() || undefined
+      });
     }
   }
 }

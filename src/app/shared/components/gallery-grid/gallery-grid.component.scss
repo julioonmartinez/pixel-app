@@ -1,39 +1,9 @@
-// src/app/features/gallery/gallery.component.scss
-@import '../../styles/variables';
-@import '../../styles/mixins';
+// src/app/shared/components/gallery-grid/gallery-grid.component.scss
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
 
 .gallery-container {
   width: 100%;
-  // height: calc( 100vh - 92px);
-}
-
-.gallery-header {
-  text-align: center;
-  margin-bottom: $spacing-xl;
-  
-  @include responsive(mobile) {
-    margin-bottom: $spacing-lg;
-    padding: 0 $spacing-sm;
-  }
-}
-
-.gallery-title {
-  @include gradient-text;
-  margin-bottom: $spacing-sm;
-  
-  @include responsive(mobile) {
-    font-size: 1.6rem;
-    margin-bottom: $spacing-xs;
-  }
-}
-
-.gallery-subtitle {
-  color: $text-secondary;
-  
-  @include responsive(mobile) {
-    font-size: 0.9rem;
-    line-height: 1.3;
-  }
 }
 
 .gallery-filters {
@@ -43,9 +13,8 @@
   margin-bottom: $spacing-xl;
   flex-wrap: wrap;
   gap: $spacing-md;
-
   
-  @include responsive(mobile) {
+  @include responsive(mobile-only) {
     flex-direction: column;
     align-items: stretch;
     margin-bottom: $spacing-lg;
@@ -53,19 +22,57 @@
   }
 }
 
-.filter-section, .sort-section {
+.filter-section {
   display: flex;
   align-items: center;
   gap: $spacing-md;
+  flex-grow: 1;
+  flex-wrap: wrap;
   
-  @include responsive(mobile) {
+  @include responsive(mobile-only) {
     width: 100%;
   }
 }
 
-.filter-section {
-  flex-grow: 1;
-  flex-wrap: wrap;
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  
+  @include responsive(mobile-only) {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: $spacing-sm;
+  }
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: $spacing-xs;
+  
+  .view-mode-btn {
+    @include touch-target;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: $text-secondary;
+    padding: $spacing-xs;
+    border-radius: $border-radius-md;
+    cursor: pointer;
+    transition: all $transition-normal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    &.active {
+      background: rgba($purple-primary, 0.2);
+      color: $purple-light;
+      border-color: rgba($purple-light, 0.3);
+    }
+  }
 }
 
 .search-bar {
@@ -79,7 +86,7 @@
     color: $text-primary;
     width: 250px;
     
-    @include responsive(mobile) {
+    @include responsive(mobile-only) {
       width: 100%;
     }
     
@@ -101,7 +108,8 @@
 .filter-buttons {
   display: flex;
   gap: $spacing-xs;
-  @include responsive(mobile) {
+  
+  @include responsive(mobile-only) {
     width: 100%;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -137,8 +145,21 @@
 }
 
 .sort-section {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  
+  @include responsive(mobile-only) {
+    gap: $spacing-xs;
+  }
+  
   label {
     color: $text-secondary;
+    white-space: nowrap;
+    
+    @include responsive(mobile-only) {
+      font-size: 0.9rem;
+    }
   }
   
   select {
@@ -157,13 +178,13 @@
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Reducido de 300px a 250px */
-  gap: $spacing-md; /* Reducido de spacing-lg a spacing-md */
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: $spacing-md;
   margin-bottom: $spacing-lg;
   
-  @include responsive(mobile) {
-    grid-template-columns: repeat(2, 1fr); /* 2 columnas en móvil */
-    gap: $spacing-sm; /* Espacio más compacto en móvil */
+  @include responsive(mobile-only) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-sm;
   }
   
   @include responsive(tablet-up) {
@@ -177,54 +198,43 @@
   }
 }
 
-.gallery-item {
-  @include responsive(mobile) {
-    /* Reduce la relación de aspecto en móvil para mostrar más contenido */
-    .gallery-image {
-      aspect-ratio: 1/0.8; /* Un poco más ancho que alto en móvil */
-    }
-    
-    /* Título más compacto */
-    .gallery-item-title {
-      font-size: 0.95rem;
-      margin-bottom: 2px;
-    }
-    
-    /* Meta información más compacta */
-    .gallery-meta {
-      margin-bottom: 2px;
-      
-      .creation-date {
-        font-size: 0.7rem;
-      }
-      
-      .style-badge {
-        font-size: 0.7rem;
-        padding: 1px $spacing-xs;
-      }
-    }
-    
-    /* Tags más compactos */
-    .gallery-tags {
-      padding-top: 2px;
-      
-      .tag {
-        padding: 1px $spacing-xs;
-        font-size: 0.7rem;
-      }
-    }
+/* Vista de lista (nuevo) */
+.gallery-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+  
+  app-card {
+    width: 100%;
   }
 }
 
-.gallery-image {
-  aspect-ratio: 1;
+.list-item {
+  display: flex;
+  gap: $spacing-md;
+  width: 100%;
+  
+  @include responsive(mobile-only) {
+    gap: $spacing-sm;
+  }
+}
+
+.list-item-image {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.2);
   border-radius: $border-radius-md;
-  margin-bottom: $spacing-md;
+  
+  @include responsive(mobile-only) {
+    width: 80px;
+    height: 80px;
+  }
   
   img {
     width: 100%;
@@ -246,14 +256,24 @@
   }
 }
 
-.gallery-info {
-  h3 {
-    font-size: 1.1rem;
-    margin-bottom: $spacing-xs;
+.list-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-item-title {
+  font-size: 1.2rem;
+  margin-bottom: $spacing-xs;
+  color: $text-primary;
+  
+  @include responsive(mobile-only) {
+    font-size: 1rem;
+    margin-bottom: 2px;
   }
 }
 
-.gallery-meta {
+.list-item-details {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -294,12 +314,28 @@
       color: limegreen;
     }
   }
+  
+  @include responsive(mobile-only) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    
+    .creation-date {
+      font-size: 0.7rem;
+    }
+    
+    .style-badge {
+      font-size: 0.7rem;
+      padding: 1px $spacing-xs;
+    }
+  }
 }
 
-.gallery-tags {
+.list-item-tags {
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-xs;
+  margin-top: auto;
   
   .tag {
     background: rgba($purple-primary, 0.2);
@@ -307,98 +343,20 @@
     padding: 2px $spacing-sm;
     border-radius: $border-radius-sm;
     font-size: 0.8rem;
-  }
-}
-
-.no-results {
-  text-align: center;
-  padding: $spacing-xxl 0;
-  
-  svg {
-    margin-bottom: $spacing-md;
-    opacity: 0.5;
-  }
-  
-  p {
-    color: $text-secondary;
-    margin-bottom: $spacing-lg;
-  }
-}
-
-.gallery-pagination {
-  @include responsive(mobile) {
-    gap: $spacing-sm;
     
-    app-button {
-      width: auto;
-      min-width: 90px;
-      padding: 0 $spacing-xs;
-    }
-    
-    .page-info {
-      font-size: 0.8rem;
+    @include responsive(mobile-only) {
+      font-size: 0.7rem;
+      padding: 1px $spacing-xs;
     }
   }
-}
-
-@keyframes breathing {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-@keyframes flickering {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes floating {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.processing-indicator {
-  text-align: center;
-  padding: $spacing-lg;
   
-  .spinner {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto $spacing-md;
-    border: 4px solid rgba($purple-light, 0.3);
-    border-radius: 50%;
-    border-top-color: $purple-light;
-    animation: spin 1s linear infinite;
-  }
-  
-  p {
-    color: $purple-light;
-    margin-bottom: $spacing-xs;
-  }
-  
-  .processing-hint {
+  .tag-more {
+    background: rgba($text-secondary, 0.2);
     color: $text-secondary;
-    font-size: 0.9rem;
   }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Añade o actualiza estos estilos en tu archivo gallery.component.scss */
-
+/* Estilos para tarjetas en grid */
 .gallery-item {
   height: 100%;
   display: flex;
@@ -414,8 +372,8 @@
   background: rgba(0, 0, 0, 0.2);
   border-radius: $border-radius-md;
   margin-bottom: $spacing-md;
-  will-change: transform; /* Optimiza las animaciones */
-  backface-visibility: hidden; /* Reduce los flashes en animaciones */
+  will-change: transform;
+  backface-visibility: hidden;
   
   img {
     width: 100%;
@@ -424,6 +382,7 @@
     image-rendering: pixelated;
   }
 }
+
 .image-loading {
   opacity: 0;
   transition: opacity 0.3s ease-in;
@@ -437,6 +396,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0; // Para que text-overflow funcione correctamente
 }
 
 .gallery-item-title {
@@ -446,68 +406,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.gallery-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: $spacing-sm;
   
-  .creation-date {
-    font-size: 0.8rem;
-    color: $text-secondary;
-  }
-  
-  .style-badge {
-    font-size: 0.8rem;
-    padding: 2px $spacing-sm;
-    border-radius: $border-radius-sm;
-    
-    &.style-retro {
-      background: rgba(255, 165, 0, 0.2);
-      color: orange;
-    }
-    
-    &.style-modern {
-      background: rgba(0, 191, 255, 0.2);
-      color: deepskyblue;
-    }
-    
-    &.style-minimalist {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-    }
-    
-    &.style-dithered {
-      background: rgba(147, 112, 219, 0.2);
-      color: mediumpurple;
-    }
-    
-    &.style-isometric {
-      background: rgba(50, 205, 50, 0.2);
-      color: limegreen;
-    }
-  }
-}
-
-.gallery-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-xs;
-  margin-top: auto;
-  padding-top: $spacing-xs;
-  
-  .tag {
-    background: rgba($purple-primary, 0.2);
-    color: $purple-light;
-    padding: 2px $spacing-sm;
-    border-radius: $border-radius-sm;
-    font-size: 0.8rem;
-  }
-  
-  .tag-more {
-    background: rgba($text-secondary, 0.2);
-    color: $text-secondary;
+  @include responsive(mobile-only) {
+    font-size: 0.95rem;
   }
 }

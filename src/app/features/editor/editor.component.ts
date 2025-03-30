@@ -12,6 +12,8 @@ import { CardComponent } from '../../shared/components/card/card.component';
 import { DialogComponent } from '../../shared/components/dialog/dialog.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { VersionHistoryComponent } from "../pixel-art/version-history/version-history.component";
+import { AnimationType } from '../../core/models/pixel-art.model';
 
 @Component({
   selector: 'app-editor',
@@ -19,21 +21,43 @@ import { FormsModule } from '@angular/forms';
   imports: [
     CommonModule,
     FormsModule,
-    ImageUploadComponent, 
+    ImageUploadComponent,
     TextPromptComponent,
     StyleOptionsComponent,
     BackgroundOptionsComponent,
     PreviewComponent,
     ButtonComponent,
     CardComponent,
-    DialogComponent
-  ],
+    DialogComponent,
+    VersionHistoryComponent
+],
   template: `
     <div class="editor-container">
-      <h1 class="editor-title">Editor de Pixel Art</h1>
-      
+      <h1 class="editor-title">{{isUpdateImage() ? 'Edita tu Pixel Art' : 'Editor de Pixel Art'  }} </h1>
+      @if(isUpdateImage() && resultPixelArt() ){
+        <h3>{{resultPixelArt()?.name}}</h3>
+      }
       <div class="editor-tabs">
+      
         <button 
+          class="tab-button" 
+          [class.active]="activeTab() === 'pixelArt'"
+          (click)="setActiveTab('pixelArt')"
+        >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Grid representing pixels -->
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <!-- Pixel elements -->
+            <rect x="7" y="7" width="4" height="4" stroke="currentColor"></rect>
+            <rect x="13" y="7" width="4" height="4" stroke="currentColor"></rect>
+            <rect x="7" y="13" width="4" height="4" stroke="currentColor"></rect>
+            <rect x="13" y="13" width="4" height="4" stroke="currentColor"></rect>
+        </svg>
+          Editar Pixel-Art
+        </button>
+        
+       
+       <button 
           class="tab-button" 
           [class.active]="activeTab() === 'upload'"
           (click)="setActiveTab('upload')"
@@ -63,9 +87,9 @@ import { FormsModule } from '@angular/forms';
             <app-card>
               <app-image-upload (imageSelected)="onImageSelected($event)" />
             </app-card>
-          } @else if (activeTab() === 'prompt') {
+          } @else if ( (activeTab() === 'prompt') || (activeTab() === 'pixelArt' ) ) {
             <app-card>
-              <app-text-prompt (promptSubmitted)="onPromptSubmitted($event)" />
+              <app-text-prompt (promptSubmitted)="onPromptSubmitted($event)" [editMode]="isUpdateImage()" [pixelArt]="resultPixelArt()" />
             </app-card>
           }
           
@@ -82,6 +106,9 @@ import { FormsModule } from '@angular/forms';
           <app-card>
             <app-preview />
           </app-card>
+          @if(resultPixelArt()?.versionHistory ) {
+              <app-version-history [pixelArt]="resultPixelArt()!" />
+            }
           
           <div class="preview-actions">
             <app-button 
@@ -230,16 +257,17 @@ export class EditorComponent {
   private pixelArtService = inject(PixelArtService);
   
   // Uso de signals para el estado del componente
-  activeTab = signal<'upload' | 'prompt'>('upload');
+  activeTab = signal<'upload' | 'prompt' | 'pixelArt' >('prompt');
   showSaveDialogFlag = signal<boolean>(false);
   showShareDialogFlag = signal<boolean>(false);
   saveArtName = '';
   saveArtTags = '';
   shareUrl = '';
   copySuccess = signal<boolean>(false);
-  
+  isUpdateImage = signal<boolean>(false);
   // Acceso directo a signals del servicio
   resultImage = this.pixelArtService.resultImage;
+  resultPixelArt = this.pixelArtService.resultPixelArt;
   isProcessing = this.pixelArtService.isProcessing;
   
   // Computed para verificar si hay imagen disponible
@@ -248,28 +276,44 @@ export class EditorComponent {
   constructor() {
     // Inicializar la pestaña según los parámetros de la URL
     this.route.queryParams.subscribe(params => {
-      if (params['mode'] === 'upload' || params['mode'] === 'prompt') {
-        this.activeTab.set(params['mode'] as 'upload' | 'prompt');
+      console.log('params',  params)
+      if (params['mode'] === 'upload' || params['mode'] === 'prompt' || params['mode'] === 'pixelArt' ) {
+        this.activeTab.set(params['mode'] as 'upload' | 'prompt' | 'pixelArt');
+        this.isUpdateImage.set(false)
       }
       
       // Cargar arte existente si se proporciona un ID
       if (params['art']) {
+        this.isUpdateImage.set(true)
+        // this.activeTab.set('pixelArt');
         this.loadExistingPixelArt(params['art']);
       }
     });
   }
   
-  setActiveTab(tab: 'upload' | 'prompt'): void {
+  setActiveTab(tab: 'upload' | 'prompt' | 'pixelArt' ): void {
     this.activeTab.set(tab);
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { mode: tab },
       queryParamsHandling: 'merge'
     });
+    if(tab === 'pixelArt' && this.resultPixelArt() && this.resultPixelArt()?.imageUrl ){
+      this.pixelArtService.resultImage.set(this.resultPixelArt()?.imageUrl!)
+    }
+    if((tab === 'prompt') || (tab === 'upload') ){
+      this.pixelArtService.resultImage.set(null);
+    }
+    
   }
   
-  onImageSelected(imageDataUrl: string): void {
-    this.pixelArtService.setSourceImage(imageDataUrl);
+  onImageSelected(data: {image: string, prompt?: string}): void {
+    this.pixelArtService.setSourceImage(data.image);
+    
+    // Si hay un prompt adicional, usarlo en el procesamiento
+    if (data.prompt) {
+      this.pixelArtService.processImage(data.prompt);
+    }
   }
   
   onPromptSubmitted(prompt: string): void {
@@ -278,14 +322,40 @@ export class EditorComponent {
   
   downloadImage(): void {
     if (!this.resultImage()) return;
+    const imageUrl = this.resultImage() as string
     
-    // Crear un enlace temporal para descargar la imagen
-    const a = document.createElement('a');
-    a.href = this.resultImage()!;
-    a.download = `pixel_art_${new Date().getTime()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      // Método 1: Usando fetch para descargar la imagen correctamente
+      fetch(imageUrl)
+        .then(response => response.blob())
+        .then(blob => {
+          // Crear un objeto URL para el blob
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // Crear un elemento <a> temporal
+          const downloadLink = document.createElement('a');
+          downloadLink.href = blobUrl;
+          
+          // Establecer el nombre del archivo para la descarga
+          const fileName = `pixel-art-${Date.now()}.png`;
+          downloadLink.download = fileName;
+          
+          // Agregar el enlace al documento, hacer clic y luego eliminarlo
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          
+          // Limpieza
+          document.body.removeChild(downloadLink);
+          window.URL.revokeObjectURL(blobUrl); // Liberar memoria
+          
+          console.log(`Descargando imagen como ${fileName}`);
+        })
+        .catch(error => {
+          console.error('Error al descargar la imagen:', error);
+        });
+    } catch (error) {
+      console.error('Error en proceso de descarga:', error);
+    }
   }
   
   showSaveDialog(): void {
@@ -344,21 +414,29 @@ export class EditorComponent {
   }
   
   private loadExistingPixelArt(id: string): void {
-    // Implementación para cargar arte existente
     console.log(`Loading pixel art with ID: ${id}`);
     
-    // Aquí añadirías la lógica para cargar un pixel art existente
-    // Por ejemplo, consultando el servicio de pixel art:
-    // this.pixelArtService.getPixelArtById(id).subscribe(art => {
-    //   if (art) {
-    //     this.pixelArtService.resultImage.set(art.imageUrl);
-    //     this.pixelArtService.updateSettings({
-    //       pixelSize: art.pixelSize,
-    //       style: art.style,
-    //       backgroundType: art.backgroundType,
-    //       animationType: art.animationType
-    //     });
-    //   }
-    // });
+    this.pixelArtService.getPixelArtById(id).subscribe(art => {
+      if (art) {
+        if(this.activeTab() === 'pixelArt'){
+          this.pixelArtService.resultImage.set(art.imageUrl);
+        }
+        this.pixelArtService.resultPixelArt.set(art);
+        
+        // Actualizar los settings basados en el pixel art cargado
+        this.pixelArtService.updateSettings({
+          pixelSize: art.pixelSize,
+          style: art.style,
+          backgroundType: art.backgroundType,
+          animationType: art.animationType || AnimationType.NONE,
+          paletteId: art.palette.id
+        });
+        
+        // Si hay un prompt, cargarlo en el componente de texto
+        if (art.prompt) {
+          this.pixelArtService.sourcePrompt.set(art.prompt);
+        }
+      }
+    });
   }
 }

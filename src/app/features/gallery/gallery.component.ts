@@ -106,9 +106,14 @@ import { PixelArtDetailComponent } from './pixel-art-detail/pixel-art-detail.com
           @for (art of filteredArtworks(); track art.id) {
             <app-card [clickable]="true" (click)="openPixelArtDetail(art)">
               <div class="gallery-item">
-                <div class="gallery-image" [ngClass]="getAnimationClass(art)">
-                  <img [src]="art.thumbnailUrl | imageUrl" [alt]="art.name || 'Pixel Art'" />
-                </div>
+              <div class="gallery-image" [ngClass]="getAnimationClass(art)">
+                <img 
+                  [src]="art.thumbnailUrl | imageUrl" 
+                  [alt]="art.name || 'Pixel Art'"
+                  class="image-loading"
+                  (load)="onImageLoad($event)"
+                />
+              </div>
                 <div class="gallery-info">
                   <h3 class="gallery-item-title">{{ art.name || 'Sin título' }}</h3>
                   
@@ -306,20 +311,55 @@ export class GalleryComponent {
 
   editPixelArt(id: string): void {
     this.closeModal();
-    this.router.navigate(['/editor'], { queryParams: { art: id } });
+    this.router.navigate(['/editor'], { queryParams: { art: id, mode: 'pixelArt' } });
   }
+  // Agrega este método al componente GalleryComponent
+onImageLoad(event: Event): void {
+  const img = event.target as HTMLImageElement;
+  if (img) {
+    img.classList.add('loaded');
+  }
+}
 
-  downloadPixelArt(imageUrl: string): void {
-    // Crear un enlace para descargar la imagen
-    if (!imageUrl) return;
-    
-    const a = document.createElement('a');
-    a.href = imageUrl;
-    a.download = `pixel-art-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+downloadPixelArt(imageUrl: string): void {
+  if (!imageUrl) {
+    console.error('URL de imagen indefinida');
+    return;
   }
+  
+  try {
+    // Método 1: Usando fetch para descargar la imagen correctamente
+    fetch(imageUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        // Crear un objeto URL para el blob
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Crear un elemento <a> temporal
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        
+        // Establecer el nombre del archivo para la descarga
+        const fileName = `pixel-art-${Date.now()}.png`;
+        downloadLink.download = fileName;
+        
+        // Agregar el enlace al documento, hacer clic y luego eliminarlo
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        
+        // Limpieza
+        document.body.removeChild(downloadLink);
+        window.URL.revokeObjectURL(blobUrl); // Liberar memoria
+        
+        console.log(`Descargando imagen como ${fileName}`);
+      })
+      .catch(error => {
+        console.error('Error al descargar la imagen:', error);
+      });
+  } catch (error) {
+    console.error('Error en proceso de descarga:', error);
+  }
+}
 
   sharePixelArt(id: string): void {
     // Aquí podrías implementar lógica para compartir
@@ -368,8 +408,31 @@ export class GalleryComponent {
     this.currentPage.set(1);
   }
   
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString();
+  formatDate(date: Date | string | undefined): string {
+    if (!date) return 'Fecha desconocida';
+    
+    try {
+      const dateObj = new Date(date);
+      
+      // En dispositivos móviles, usar formato más compacto
+      if (window.innerWidth <= 576) { // Ancho de mobile en tus variables
+        // Formato: "4 mar" (día y mes abreviado)
+        return dateObj.toLocaleDateString('es-ES', {
+          day: 'numeric',
+          month: 'short'
+        });
+      }
+      
+      // En otros dispositivos, formato normal
+      return dateObj.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      console.error('Error al formatear fecha:', e);
+      return 'Fecha inválida';
+    }
   }
   
   getStyleName(style: string): string {
@@ -422,6 +485,53 @@ closeOnBackdrop(event: MouseEvent): void {
   if (event.target === event.currentTarget) {
     this.closeModal();
   }
+}
+
+// Optimización para prevenir recálculos en cada renderizado
+getStyleNameOptimized(style: string | undefined): string {
+  if (!style) return 'Estándar';
+  
+  // Usar un mapa para evitar múltiples condiciones switch
+  const styleMap: Record<string, string> = {
+    'retro': 'Retro 8-bit',
+    'RETRO_8BIT': 'Retro 8-bit',
+    'modern': 'Moderno 16-bit',
+    'MODERN_16BIT': 'Moderno 16-bit',
+    'minimalist': 'Minimalista',
+    'MINIMALIST': 'Minimalista',
+    'dithered': 'Dithering',
+    'DITHERED': 'Dithering',
+    'isometric': 'Isométrico',
+    'ISOMETRIC': 'Isométrico'
+  };
+  
+  return styleMap[style] || 'Estándar';
+}
+
+// Mejora para mostrar nombre abreviado del estilo en móviles
+getStyleNameMobile(style: string | undefined): string {
+  if (!style) return 'Std';
+  
+  // Si estamos en móvil, devolvemos nombres abreviados
+  if (window.innerWidth <= 576) {
+    const mobileStyleMap: Record<string, string> = {
+      'retro': 'Retro',
+      'RETRO_8BIT': 'Retro',
+      'modern': 'Modern',
+      'MODERN_16BIT': 'Modern',
+      'minimalist': 'Minim',
+      'MINIMALIST': 'Minim',
+      'dithered': 'Dither',
+      'DITHERED': 'Dither',
+      'isometric': 'Iso',
+      'ISOMETRIC': 'Iso'
+    };
+    
+    return mobileStyleMap[style] || 'Std';
+  }
+  
+  // En otros dispositivos, usar el método normal
+  return this.getStyleName(style);
 }
 
 

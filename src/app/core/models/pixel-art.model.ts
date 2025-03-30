@@ -19,6 +19,9 @@ export interface PixelArt {
   /** Fecha y hora de creación del arte en píxeles */
   createdAt: Date;
 
+  /** Fecha y hora de última actualización del arte en píxeles */
+  updatedAt?: Date;
+
   /** Ancho de la imagen en número de píxeles */
   width: number;
 
@@ -45,6 +48,32 @@ export interface PixelArt {
 
   /** Tipo de animación aplicada (opcional, solo si es animado) */
   animationType?: AnimationType;
+
+  /** Prompt utilizado para generar o modificar la imagen (opcional) */
+  prompt?: string;
+
+  /** Historial de versiones anteriores de esta imagen (opcional) */
+  versionHistory?: PixelArtVersion[];
+}
+
+/**
+ * Representa una versión anterior de un PixelArt.
+ */
+export interface PixelArtVersion {
+  /** Marca de tiempo de cuando se creó esta versión */
+  timestamp: string;
+  
+  /** URL de la imagen de esta versión */
+  imageUrl: string;
+  
+  /** URL de la miniatura de esta versión */
+  thumbnailUrl: string;
+  
+  /** Prompt utilizado para crear esta versión (si aplica) */
+  prompt?: string;
+  
+  /** Cambios aplicados en esta versión */
+  changes: Record<string, any>;
 }
 
 /**
@@ -90,4 +119,56 @@ export interface ColorPalette {
 
   /** Lista de colores en formato hexadecimal */
   colors: string[];
+}
+
+/**
+ * Configuración para actualizar un pixel art existente con cambios visuales.
+ */
+export interface PixelArtUpdateWithImage {
+  /** Datos a actualizar del pixel art */
+  updates: Partial<PixelArt>;
+  
+  /** Prompt que describe las modificaciones a realizar */
+  prompt: string;
+  
+  /** Indica si se debe aplicar el prompt para modificar la imagen */
+  applyChangesToImage: boolean;
+}
+
+/**
+ * Configuración para procesar una imagen con un prompt adicional.
+ */
+export interface PixelArtProcessRequest {
+  /** Archivo de imagen a procesar */
+  file: File;
+  
+  /** Nombre o título del arte en píxeles */
+  name: string;
+  
+  /** Tamaño de cada píxel en la imagen */
+  pixelSize: number;
+  
+  /** Estilo artístico del pixel art */
+  style: PixelArtStyle;
+  
+  /** ID de la paleta de colores a utilizar */
+  paletteId: string;
+  
+  /** Nivel de contraste a aplicar (0-100) */
+  contrast: number;
+  
+  /** Nivel de nitidez a aplicar (0-100) */
+  sharpness: number;
+  
+  /** Tipo de fondo a utilizar */
+  backgroundType: BackgroundType;
+  
+  /** Tipo de animación a aplicar */
+  animationType: AnimationType;
+  
+  /** Prompt opcional para mejorar o modificar la imagen con IA */
+  prompt?: string;
+  
+  /** Lista de etiquetas separadas por coma */
+  tags: string;
 }
